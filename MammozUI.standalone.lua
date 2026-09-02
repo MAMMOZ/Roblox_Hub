@@ -5818,9 +5818,12 @@ function Card:Section(config)
 	return self
 end
 
+local makeLabelProxy
 function Card:Label(config, note)
-	local text = type(config) == "table" and (config.Text or config.Title or config.Content or "") or config
-	return self.raw:AddLabel(tostring(text or ""), note ~= false)
+	local text = type(config) == "table"
+		and (config.Text or config.Name or config.name or config.Title or config.Content or config.Label or "")
+		or config
+	return makeLabelProxy(self.raw:AddLabel(tostring(text or ""), note ~= false), self)
 end
 
 function Card:Paragraph(config)
@@ -6128,11 +6131,13 @@ function Card:AddButton(...)
 	return self:Button(...)
 end
 
-local function makeLabelProxy(label, card)
+makeLabelProxy = function(label, card)
 	local proxy = makeControlProxy(function(value)
 		label.Text = tostring(value or "")
 	end)
 	rawset(proxy, "Label", label)
+	rawset(proxy, "Instance", label)
+	rawset(proxy, "Value", label.Text)
 	function proxy:SetText(value)
 		label.Text = tostring(value or "")
 		self.Value = label.Text
@@ -6144,6 +6149,13 @@ local function makeLabelProxy(label, card)
 	function proxy:SetValue(value)
 		return self:SetText(value)
 	end
+	function proxy:Destroy()
+		if label then
+			label:Destroy()
+		end
+		return self
+	end
+	proxy.Remove = proxy.Destroy
 	return setmetatable(proxy, {
 		__index = function(tableSelf, key)
 			if key == "Text" then
@@ -6171,7 +6183,7 @@ local function makeLabelProxy(label, card)
 end
 
 function Card:AddLabel(text, note)
-	return makeLabelProxy(self:Label(text, note), self)
+	return self:Label(text, note)
 end
 
 function Card:AddDropdown(...)
@@ -6409,15 +6421,22 @@ function Card:Colorpicker(config)
 	return proxy
 end
 
-function Card:AddColorPicker(id, config)
-	config = type(config) == "table" and config or {}
+function Card:AddColorPicker(id, config, callback)
+	if type(id) == "table" and config == nil then
+		config = id
+		id = config.Flag or config.Id or config.ID or config.Name or config.Title
+	elseif typeof(config) == "Color3" then
+		config = { Name = id, Default = config, Callback = callback }
+	elseif type(config) ~= "table" then
+		config = { Name = id, Callback = callback }
+	end
 	config.Name = config.Name or config.Title or config.Text or id or "Color"
 	local proxy = self:Colorpicker(config)
 	return registerOption(config.Flag or id, proxy, false)
 end
 
-function Card:AddColorpicker(id, config)
-	return self:AddColorPicker(id, config)
+function Card:AddColorpicker(id, config, callback)
+	return self:AddColorPicker(id, config, callback)
 end
 
 local function keyDisplay(value)
@@ -6441,6 +6460,10 @@ end
 
 function Card:CreateColorpicker(config)
 	return self:Colorpicker(config)
+end
+
+function Card:CreateColorPicker(config)
+	return self:CreateColorpicker(config)
 end
 
 function Card:RadioButtonGroup(config)
@@ -6541,6 +6564,16 @@ end
 UI.CreateWindow = function(first, second)
 	local config = first == UI and second or first
 	return UI.Window(config)
+end
+
+-- VectorHub's Evil factory and similar libraries return a tabbed window.
+-- Keeping this alias in the shared compatibility layer lets converted scripts
+-- retain their original UI calls without bundling a second UI implementation.
+function UI:Evil(config)
+	config = type(config) == "table" and config or {}
+	config.Title = config.Title or config.Name or "VectorHub"
+	config.Name = config.Name or "VectorHub"
+	return self:CreateWindow(config)
 end
 
 UI.New = function()
@@ -6887,6 +6920,19 @@ function UI:Toggle()
 	return false
 end
 
+function UI:IsVisible()
+	local window = self.LastWindow
+	return window and window.raw and window.raw.visible == true or false
+end
+
+function UI:SetVisibility(visible)
+	local window = self.LastWindow
+	if window and window.raw then
+		window.raw:setVisible(visible == true)
+	end
+	return self
+end
+
 function UI:MakeDraggable()
 	return true
 end
@@ -7062,6 +7108,17 @@ end
 function Window:Toggle()
 	self.raw:setVisible(not self.raw.visible)
 	return self.raw.visible
+end
+
+function Window:IsVisible()
+	return self.raw and self.raw.visible == true or false
+end
+
+function Window:SetVisibility(visible)
+	if self.raw then
+		self.raw:setVisible(visible == true)
+	end
+	return self
 end
 
 function Window:Minimize()
