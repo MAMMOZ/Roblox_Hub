@@ -5906,6 +5906,11 @@ function Card:Button(config, callback, tone)
 	if type(config) == "table" then
 		return self:Button(config.Name or config.name or config.Title or config.Label or "Button", config.Callback or config.Pushed or callback, tone)
 	end
+	-- VectorHub also accepts Button(name, disabled, callback).  The middle
+	-- argument is not meaningful to MammozUI, but retaining the callback is.
+	if type(callback) ~= "function" and type(tone) == "function" then
+		callback = tone
+	end
 	local button, label
 	button, label = self.raw:AddButton(tostring(config or "Button"), function()
 		call(callback, button, label)
@@ -5964,9 +5969,9 @@ end
 
 function Card:Dropdown(config, options, default, callback)
 	if type(config) == "table" then
-		local values = config.Values or config.Options or config.values or options or {}
+		local values = config.Values or config.Options or config.List or config.Items or config.values or options or {}
 		local cb = config.Callback or config.ValueChanged or callback
-		local current = config.Value or config.CurrentValue or config.Default or default or values[1]
+		local current = config.Value or config.CurrentValue or config.Default or config.Selected or default or values[1]
 		return self:Dropdown(config.Name or config.name or config.Title or config.Label or "Dropdown", values, current, function(value)
 			call(cb, value)
 		end)
@@ -6026,6 +6031,52 @@ function Card:Dropdown(config, options, default, callback)
 		end
 		return self:Set(value)
 	end
+	function control:Clear()
+		options = {}
+		current = nil
+		if backendSetOptions then
+			backendSetOptions(self, options)
+		elseif backendRefresh then
+			backendRefresh(self, options)
+		end
+		if backendSet then
+			backendSet(self, nil)
+		end
+		return self
+	end
+	function control:Add(value)
+		options[#options + 1] = value
+		if backendSetOptions then
+			backendSetOptions(self, options)
+		elseif backendRefresh then
+			backendRefresh(self, options)
+		end
+		return self
+	end
+	function control:Remove(value)
+		for index, option in ipairs(options) do
+			if option == value then
+				table.remove(options, index)
+				break
+			end
+		end
+		if current == value then
+			current = nil
+		end
+		if backendSetOptions then
+			backendSetOptions(self, options)
+		elseif backendRefresh then
+			backendRefresh(self, options)
+		end
+		return self
+	end
+	function control:GetOptions()
+		local result = {}
+		for index, option in ipairs(options) do
+			result[index] = option
+		end
+		return result
+	end
 	return control
 end
 
@@ -6064,8 +6115,8 @@ function Card:MultiDropdown(config, options, default, callback)
 		Default = default,
 		Callback = callback,
 	}
-	local values = config.Values or config.Options or {}
-	local selectedSet = arraySet(config.Default or config.Value or config.CurrentValue or {})
+	local values = config.Values or config.Options or config.List or config.Items or {}
+	local selectedSet = arraySet(config.Default or config.Value or config.CurrentValue or config.Selected or {})
 	local cb = config.Callback or config.ValueChanged or callback
 	local title = config.Name or config.name or config.Title or config.Label or "Multi Dropdown"
 	local status = self:AddLabel(title .. ": " .. (#selectionFromSet(values, selectedSet) > 0 and table.concat(selectionFromSet(values, selectedSet), ", ") or "None"), true)
@@ -6086,7 +6137,7 @@ function Card:MultiDropdown(config, options, default, callback)
 	end)
 	proxy.Value = currentSelection()
 
-	self:Dropdown("Toggle " .. tostring(title), values, values[1], function(value)
+	local selector = self:Dropdown("Toggle " .. tostring(title), values, values[1], function(value)
 		local key = tostring(value)
 		selectedSet[key] = not selectedSet[key] or nil
 		proxy.Value = currentSelection()
@@ -6113,11 +6164,53 @@ function Card:MultiDropdown(config, options, default, callback)
 	function proxy:SetOptions(newValues)
 		values = type(newValues) == "table" and newValues or values
 		self.Value = currentSelection()
+		if selector and type(selector.SetOptions) == "function" then
+			selector:SetOptions(values)
+		end
 		syncLabel()
 		return self
 	end
 	function proxy:Refresh(newValues)
 		return self:SetOptions(newValues)
+	end
+	function proxy:Clear()
+		values = {}
+		selectedSet = {}
+		self.Value = {}
+		if selector and type(selector.Clear) == "function" then
+			selector:Clear()
+		elseif selector and type(selector.SetOptions) == "function" then
+			selector:SetOptions(values)
+		end
+		syncLabel()
+		call(cb, self.Value)
+		return self
+	end
+	function proxy:Add(value)
+		values[#values + 1] = value
+		if selector and type(selector.SetOptions) == "function" then
+			selector:SetOptions(values)
+		end
+		return self
+	end
+	function proxy:Remove(value)
+		for index, option in ipairs(values) do
+			if option == value then
+				table.remove(values, index)
+				break
+			end
+		end
+		selectedSet[tostring(value)] = nil
+		self.Value = currentSelection()
+		if selector and type(selector.SetOptions) == "function" then
+			selector:SetOptions(values)
+		end
+		syncLabel()
+		call(cb, self.Value)
+		return self
+	end
+	function proxy:GetOptions()
+		return cloneArray(values)
 	end
 
 	return proxy
