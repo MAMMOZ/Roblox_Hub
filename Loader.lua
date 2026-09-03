@@ -133,6 +133,13 @@ PeterHubV2.DefaultGames = {
 		PlaceId = 126509999114328,
 	},
 	{
+		Name = "Shindo Life",
+		Description = "Shindo Life - Ninja RPG",
+		Details = "Shindo Life protected route",
+		Status = "FREE",
+		PlaceId = 4616652839,
+	},
+	{
 		Name = "Mine a Mountain",
 		Description = "MaM - Auto Mine",
 		Details = "Unlock VIP and auto mine routes",
@@ -3743,6 +3750,12 @@ local GAME_ROUTES = {
 		Url = "https://api.jnkie.com/api/v1/luascripts/public/d7aee93943ad978441fb5753377a4452aba26b1f53593db987b414d96e8d974f/download",
 	},
 	{
+		Key = "shindo_life",
+		Name = "Shindo Life",
+		PlaceIds = { 4616652839 },
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/62a798a8aae5de96a5002c9c924f00d841993428318f2681ad4d69e42397e031/download",
+	},
+	{
 		Key = "mine_a_mountain",
 		Name = "Mine a Mountain",
 		PlaceIds = { 125927821145949 },
@@ -3947,6 +3960,14 @@ local LoaderPreviewGames = {
 		Features = { "FISHING", "GEAR", "COLLECTION" },
 		Status = "FREE",
 		PlaceId = 77773900773577,
+	},
+	{
+		Name = "Shindo Life",
+		Description = "Ninja RPG adventure",
+		Details = "Shindo Life protected route",
+		Features = { "NINJA", "RPG", "FARM" },
+		Status = "FREE",
+		PlaceId = 4616652839,
 	},
 	{
 		Name = "Mine a Mountain",
