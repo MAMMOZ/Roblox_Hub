@@ -2,7 +2,18 @@ if not game:IsLoaded() then
     game.Loaded:Wait()
 end
 
+--[[
+	Mammoz Hub
+	Rayfield wrapper using the no-notification source requested by the project.
 
+	Quick start:
+		local MammozHub = loadstring(readfile("Mammoz Hub/MammozHub.lib.lua"), "MammozHub")()
+		local Window = MammozHub:CreateWindow()
+		local Main = MammozHub:CreateTab(Window, "Main", 0)
+		MammozHub:Button(Main, "Run", function()
+			print("Mammoz Hub")
+		end)
+]]
 
 local PeterHubV2 = {
 	Name = "Mammoz Hub",
@@ -1715,7 +1726,7 @@ function PeterHubV2:CreateStyledWindow(options)
 			return nil
 		end
 
-		return self.Options.KeyUrl or self.Options.GetKeyUrl or "https://discord.gg/your-invite"
+		return self.Options.KeyUrl or self.Options.GetKeyUrl or "https://discord.gg/Xfa9nAsTCJ"
 	end
 
 	function app:GetHwid()
@@ -2256,13 +2267,13 @@ function PeterHubV2:CreateStyledWindow(options)
 			end
 		end)
 		hudNavButton("DISCORD", "discord", false, function()
-			self:Copy(self.Options.DiscordUrl or "https://discord.gg/your-invite", "Discord link copied.")
+			self:Copy(self.Options.DiscordUrl or "https://discord.gg/Xfa9nAsTCJ", "Discord link copied.")
 		end)
 		hudNavButton("COPY HWID", "hwid", false, function()
 			self:Copy(self:GetHwid(), "HWID copied.")
 		end)
 		hudNavButton("VIP", "vip", false, function()
-			self:Copy(self.Options.VipUrl or self.Options.DiscordUrl or "https://discord.gg/your-invite", "VIP link copied.")
+			self:Copy(self.Options.VipUrl or self.Options.DiscordUrl or "https://discord.gg/Xfa9nAsTCJ", "VIP link copied.")
 		end)
 
 		local lowEffectsTone = lowEffects and self.Theme.Success or self.Theme.StrokeSoft
@@ -3771,7 +3782,7 @@ function PeterHubV2:CreateStyledWindow(options)
 			Radius = 5,
 			ZIndex = vipPanel.ZIndex + 1,
 		}, function()
-			self:Copy(self.Options.VipUrl or self.Options.DiscordUrl or "https://discord.gg/your-invite", "VIP link copied.")
+			self:Copy(self.Options.VipUrl or self.Options.DiscordUrl or "https://discord.gg/Xfa9nAsTCJ", "VIP link copied.")
 		end)
 		createAssetIcon(buyVipButton, "vip", {
 			Color3 = Color3.fromRGB(45, 31, 8),
@@ -5595,8 +5606,8 @@ local App = MammozHub:CreateStyledWindow({
 	GetKeyLink = function()
 		return getJunkieKeyLink()
 	end,
-	DiscordUrl = "https://discord.gg/your-invite",
-	VipUrl = "https://discord.gg/your-invite",
+	DiscordUrl = "https://discord.gg/Xfa9nAsTCJ",
+	VipUrl = "https://discord.gg/Xfa9nAsTCJ",
 	VipPrice = "149 THB",
 	VipPromoBadge = "BEST VALUE",
 	VipPromoDetails = {
