@@ -7236,8 +7236,12 @@ local function applyLegacyStyle(object, root)
 	elseif object:IsA("TextButton") then
 		object.TextColor3 = UI.theme.text
 		object.Font = Enum.Font.GothamBold
-		if object.BackgroundTransparency < 0.95 then
-			object.BackgroundColor3 = Color3.fromRGB(10, 34, 62)
+
+		-- อย่าทับสีของ Mammoz UI ที่สร้างเอง
+		if not object:GetAttribute("MammozUI") then
+			if object.BackgroundTransparency < 0.95 then
+				object.BackgroundColor3 = Color3.fromRGB(10, 34, 62)
+			end
 		end
 		if not object:FindFirstChildOfClass("UICorner") then
 			local radius = Instance.new("UICorner")
