@@ -2,22 +2,11 @@ if not game:IsLoaded() then
     game.Loaded:Wait()
 end
 
---[[
-	Peter Hub v2
-	Rayfield wrapper using the no-notification source requested by the project.
 
-	Quick start:
-		local PeterHub = loadstring(readfile("Peter Hub v2/PeterHubV2.lib.lua"), "PeterHubV2")()
-		local Window = PeterHub:CreateWindow()
-		local Main = PeterHub:CreateTab(Window, "Main", 0)
-		PeterHub:Button(Main, "Run", function()
-			print("Peter Hub v2")
-		end)
-]]
 
 local PeterHubV2 = {
-	Name = "Peter Hub v2",
-	FolderName = "PeterHubV2",
+	Name = "Mammoz Hub",
+	FolderName = "MammozHub",
 	RayfieldUrl = "https://raw.githubusercontent.com/MrAhmed13/Scripts/refs/heads/main/rayfield%20no%20notification",
 	Rayfield = nil,
 }
@@ -370,13 +359,13 @@ function PeterHubV2:LoadRayfield(options)
 	end
 
 	local source, fetchError = httpGet(options.RayfieldUrl or self.RayfieldUrl)
-	assert(source and source ~= "", "[Peter Hub v2] Could not fetch Rayfield: " .. tostring(fetchError))
+	assert(source and source ~= "", "[Mammoz Hub] Could not fetch Rayfield: " .. tostring(fetchError))
 
 	local chunk, compileError = loadstring(source, "RayfieldNoNotification")
-	assert(chunk, "[Peter Hub v2] Rayfield compile error: " .. tostring(compileError))
+	assert(chunk, "[Mammoz Hub] Rayfield compile error: " .. tostring(compileError))
 
 	local ok, rayfield = pcall(chunk)
-	assert(ok and type(rayfield) == "table", "[Peter Hub v2] Rayfield load error: " .. tostring(rayfield))
+	assert(ok and type(rayfield) == "table", "[Mammoz Hub] Rayfield load error: " .. tostring(rayfield))
 
 	if type(rayfield.Theme) == "table" then
 		rayfield.Theme.PeterHubBlue = copyTable(self.BlueTheme)
@@ -402,7 +391,7 @@ function PeterHubV2:CreateWindow(settings)
 end
 
 function PeterHubV2:CreateTab(window, name, icon)
-	assert(window and type(window.CreateTab) == "function", "[Peter Hub v2] CreateTab needs a Rayfield window.")
+	assert(window and type(window.CreateTab) == "function", "[Mammoz Hub] CreateTab needs a Rayfield window.")
 	return window:CreateTab(name or "Main", icon or 0)
 end
 
@@ -426,7 +415,7 @@ function PeterHubV2:Paragraph(tab, title, content)
 end
 
 function PeterHubV2:Button(tab, name, callback)
-	assert(tab and type(tab.CreateButton) == "function", "[Peter Hub v2] Button needs a Rayfield tab.")
+	assert(tab and type(tab.CreateButton) == "function", "[Mammoz Hub] Button needs a Rayfield tab.")
 	return tab:CreateButton({
 		Name = name or "Button",
 		Callback = callback or function() end,
@@ -434,7 +423,7 @@ function PeterHubV2:Button(tab, name, callback)
 end
 
 function PeterHubV2:Toggle(tab, name, default, callback, flag)
-	assert(tab and type(tab.CreateToggle) == "function", "[Peter Hub v2] Toggle needs a Rayfield tab.")
+	assert(tab and type(tab.CreateToggle) == "function", "[Mammoz Hub] Toggle needs a Rayfield tab.")
 	return tab:CreateToggle({
 		Name = name or "Toggle",
 		CurrentValue = default and true or false,
@@ -444,7 +433,7 @@ function PeterHubV2:Toggle(tab, name, default, callback, flag)
 end
 
 function PeterHubV2:Slider(tab, name, min, max, default, increment, callback, suffix, flag)
-	assert(tab and type(tab.CreateSlider) == "function", "[Peter Hub v2] Slider needs a Rayfield tab.")
+	assert(tab and type(tab.CreateSlider) == "function", "[Mammoz Hub] Slider needs a Rayfield tab.")
 	return tab:CreateSlider({
 		Name = name or "Slider",
 		Range = { min or 0, max or 100 },
@@ -457,7 +446,7 @@ function PeterHubV2:Slider(tab, name, min, max, default, increment, callback, su
 end
 
 function PeterHubV2:Dropdown(tab, name, options, default, callback, multiple, flag)
-	assert(tab and type(tab.CreateDropdown) == "function", "[Peter Hub v2] Dropdown needs a Rayfield tab.")
+	assert(tab and type(tab.CreateDropdown) == "function", "[Mammoz Hub] Dropdown needs a Rayfield tab.")
 
 	options = options or {}
 	local currentOption = default
@@ -476,7 +465,7 @@ function PeterHubV2:Dropdown(tab, name, options, default, callback, multiple, fl
 end
 
 function PeterHubV2:Input(tab, name, placeholder, default, callback, flag, removeTextAfterFocusLost)
-	assert(tab and type(tab.CreateInput) == "function", "[Peter Hub v2] Input needs a Rayfield tab.")
+	assert(tab and type(tab.CreateInput) == "function", "[Mammoz Hub] Input needs a Rayfield tab.")
 	return tab:CreateInput({
 		Name = name or "Input",
 		CurrentValue = default or "",
@@ -499,7 +488,7 @@ function PeterHubV2:Notify(title, content, duration, image)
 		})
 	end
 
-	warn("[Peter Hub v2] " .. tostring(title or self.Name) .. ": " .. tostring(content or ""))
+	warn("[Mammoz Hub] " .. tostring(title or self.Name) .. ": " .. tostring(content or ""))
 	return nil
 end
 
@@ -588,7 +577,7 @@ function PeterHubV2:CreateLoaderWindow(options)
 				end
 
 				if not ok then
-					warn("[Peter Hub v2] " .. tostring(name) .. " failed: " .. tostring(err))
+					warn("[Mammoz Hub] " .. tostring(name) .. " failed: " .. tostring(err))
 				end
 			end)
 		end
@@ -923,6 +912,27 @@ local function addDepth(parent, theme, level, radius)
 	uiCorner(glow, radius or 8)
 	uiStroke(glow, theme.Accent, math.max(1, level), glowTransparency)
 
+	-- Keep the depth layers aligned with parent when it moves/resizes/hides.
+	-- They are siblings of `parent` (parented to parent.Parent) so parent's
+	-- ClipsDescendants does not crop them; without syncing they lag behind
+	-- on drag and stay visible after a minimize (parent.Visible = false).
+	shadow.Visible = parent.Visible
+	glow.Visible = parent.Visible
+	parent:GetPropertyChangedSignal("Position"):Connect(function()
+		local position = parent.Position
+		shadow.Position = position + UDim2.fromOffset(shadowOffset, shadowOffset)
+		glow.Position = position
+	end)
+	parent:GetPropertyChangedSignal("Size"):Connect(function()
+		shadow.Size = parent.Size
+		glow.Size = parent.Size
+	end)
+	parent:GetPropertyChangedSignal("Visible"):Connect(function()
+		local visible = parent.Visible
+		shadow.Visible = visible
+		glow.Visible = visible
+	end)
+
 	return shadow, glow
 end
 
@@ -1020,7 +1030,7 @@ local function createLogo(parent, theme, options, size)
 			Size = UDim2.fromScale(1, 1),
 		}, holder)
 	else
-		createText(holder, firstLetter(options and options.Name or "Peter Hub"), math.floor(size * 0.42), theme.Text, Enum.Font.GothamBlack, {
+		createText(holder, firstLetter(options and options.Name or "Mammoz Hub"), math.floor(size * 0.42), theme.Text, Enum.Font.GothamBlack, {
 			Size = UDim2.fromScale(1, 1),
 			TextXAlignment = Enum.TextXAlignment.Center,
 		})
@@ -1104,7 +1114,7 @@ function PeterHubV2:CreateStyledWindow(options)
 			break
 		end
 	end
-	assert(attached, "[Peter Hub v2] Could not attach styled ScreenGui.")
+	assert(attached, "[Mammoz Hub] Could not attach styled ScreenGui.")
 
 	local app = {
 		Library = self,
@@ -1236,28 +1246,99 @@ function PeterHubV2:CreateStyledWindow(options)
 	}, root)
 	uiList(controls, Enum.FillDirection.Horizontal, 8)
 
-	local restoreButton
+	local restorePanel
+	local restoreShadow
+	local restoreGlow
+	-- Remember where the user dragged the restore chip so the next fold
+	-- reopens it there instead of snapping back to the top-left corner.
+	local lastRestorePosition
+	local function destroyRestore()
+		if restoreShadow then
+			pcall(function() restoreShadow:Destroy() end)
+			restoreShadow = nil
+		end
+		if restoreGlow then
+			pcall(function() restoreGlow:Destroy() end)
+			restoreGlow = nil
+		end
+		if restorePanel then
+			restorePanel:Destroy()
+			restorePanel = nil
+		end
+	end
 	local function showRestore()
-		if restoreButton and restoreButton.Parent then
+		if restorePanel and restorePanel.Parent then
 			return
 		end
-		restoreButton = createButton(screen, theme, options.Name or self.Name, {
-			App = app,
-			Size = UDim2.fromOffset(150, 38),
-			Position = UDim2.fromOffset(16, 16),
+		restorePanel = uiMake("Frame", {
+			Name = "MammozRestore",
+			Position = lastRestorePosition or UDim2.fromOffset(16, 16),
+			Size = UDim2.fromOffset(196, 132),
 			BackgroundColor3 = theme.Panel,
-			HoverColor = theme.AccentSoft,
-			StrokeColor = theme.Accent,
-			TextSize = 12,
+			BackgroundTransparency = 0.06,
+			BorderSizePixel = 0,
+			ClipsDescendants = true,
+			Active = true,
 			ZIndex = 80,
-		}, function()
-			root.Visible = true
-			if app.CurrentPage == "GetKey" then
-				app:ShowGetKey()
+		}, screen)
+		uiCorner(restorePanel, 14)
+		uiStroke(restorePanel, theme.Accent, 1.4, 0.08)
+		restoreShadow, restoreGlow = addDepth(restorePanel, theme, 2, 14)
+
+		-- The mascot is shared with the sidebar so minimizing leaves the
+		-- same elephant walking/jumping on a small draggable chip.
+		app:BuildElephantMascot(restorePanel, {
+			AnchorPoint = Vector2.new(0, 0),
+			Position = UDim2.new(0, 0, 0, 0),
+			Size = UDim2.new(1, 0, 1, 0),
+			AlwaysAnimate = true,
+			LowEffects = app:IsLowEffects(),
+		})
+
+		local dragging = false
+		local dragStart = nil
+		local startPos = nil
+		local moved = false
+		connect(app, restorePanel.InputBegan, function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+				dragging = true
+				dragStart = input.Position
+				startPos = restorePanel.Position
+				moved = false
+				connect(app, input.Changed, function()
+					if input.UserInputState == Enum.UserInputState.End then
+						dragging = false
+					end
+				end)
 			end
-			if restoreButton then
-				restoreButton:Destroy()
-				restoreButton = nil
+		end)
+		connect(app, UserInputService.InputChanged, function(input)
+			if not dragging then
+				return
+			end
+			if input.UserInputType ~= Enum.UserInputType.MouseMovement and input.UserInputType ~= Enum.UserInputType.Touch then
+				return
+			end
+			local delta = input.Position - dragStart
+			if delta.Magnitude > 6 then
+				moved = true
+			end
+			local nextPosition = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+			restorePanel.Position = nextPosition
+			lastRestorePosition = nextPosition
+		end)
+		connect(app, restorePanel.InputEnded, function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+				dragging = false
+				-- Treat as a click only when the pointer barely moved, so a
+				-- drag to reposition does not also reopen the window.
+				if not moved then
+					root.Visible = true
+					if app.CurrentPage == "GetKey" then
+						app:ShowGetKey()
+					end
+					destroyRestore()
+				end
 			end
 		end)
 	end
@@ -1487,6 +1568,123 @@ function PeterHubV2:CreateStyledWindow(options)
 		else
 			self.StatusLabel.TextColor3 = self.Theme.Muted
 		end
+	end
+
+	-- Full-screen key verification overlay: a spinner while the JNKiE request
+	-- is in flight, a checkmark on success. Parented to Root so it survives
+	-- Content rebuilds and sits above the GetKey page.
+	function app:ShowKeyOverlay(state, message)
+		if state == "hide" then
+			if self.KeyOverlay then
+				pcall(function() self.KeyOverlay:Destroy() end)
+				self.KeyOverlay = nil
+			end
+			return
+		end
+
+		if self.KeyOverlay then
+			pcall(function() self.KeyOverlay:Destroy() end)
+		end
+
+		local overlay = uiMake("Frame", {
+			Name = "KeyOverlay",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0.5, 0, 0.5, 0),
+			Size = UDim2.fromOffset(220, 168),
+			BackgroundColor3 = self.Theme.Panel,
+			BackgroundTransparency = 0.04,
+			BorderSizePixel = 0,
+			ZIndex = 200,
+		}, self.Root)
+		uiCorner(overlay, 14)
+		uiStroke(overlay, self.Theme.Accent, 1.4, 0.08)
+		addDepth(overlay, self.Theme, 2, 14)
+		self.KeyOverlay = overlay
+
+		local iconHolder = uiMake("Frame", {
+			Name = "IconHolder",
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.new(0.5, 0, 0, 22),
+			Size = UDim2.fromOffset(56, 56),
+			BackgroundTransparency = 1,
+		}, overlay)
+
+		local messageLabel = createText(overlay, message or "", 12, self.Theme.Text, Enum.Font.GothamBold, {
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.new(0.5, 0, 1, -44),
+			Size = UDim2.new(1, -28, 0, 36),
+			TextWrapped = true,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			ZIndex = overlay.ZIndex + 2,
+		})
+
+		if state == "loading" then
+			local ring = uiMake("Frame", {
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.new(0.5, 0, 0.5, 0),
+				Size = UDim2.fromOffset(44, 44),
+				BackgroundTransparency = 1,
+				ZIndex = overlay.ZIndex + 1,
+			}, iconHolder)
+			uiCorner(ring, 999)
+			uiStroke(ring, self.Theme.Accent, 3, 0.65)
+			local ringFill = uiMake("Frame", {
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.new(0.5, 0, 0.5, 0),
+				Size = UDim2.fromOffset(44, 44),
+				BackgroundTransparency = 1,
+				ZIndex = overlay.ZIndex + 2,
+			}, iconHolder)
+			uiCorner(ringFill, 999)
+			uiStroke(ringFill, self.Theme.Accent, 3, 0)
+			local spinTween = self.TweenService:Create(ringFill, TweenInfo.new(0.9, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1), {
+				Rotation = 360,
+			})
+			spinTween:Play()
+			self.KeyOverlaySpin = spinTween
+			messageLabel.Text = message or "Verifying key..."
+		elseif state == "success" then
+			local circle = uiMake("Frame", {
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.new(0.5, 0, 0.5, 0),
+				Size = UDim2.fromOffset(52, 52),
+				BackgroundColor3 = self.Theme.Success,
+				BackgroundTransparency = 0.12,
+				BorderSizePixel = 0,
+				ZIndex = overlay.ZIndex + 1,
+			}, iconHolder)
+			uiCorner(circle, 999)
+			uiStroke(circle, self.Theme.Success, 2, 0)
+			createText(circle, "✓", 30, self.Theme.Root, Enum.Font.GothamBlack, {
+				Size = UDim2.fromScale(1, 1),
+				TextXAlignment = Enum.TextXAlignment.Center,
+				ZIndex = circle.ZIndex + 1,
+			})
+			messageLabel.Text = message or "Key verified"
+		end
+
+		overlay.BackgroundTransparency = 1
+		self.TweenService:Create(overlay, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			BackgroundTransparency = 0.04,
+		}):Play()
+	end
+
+	function app:ShakeKeyInput(keyBox)
+		if not keyBox or not keyBox.Parent then
+			return
+		end
+		local original = keyBox.Position
+		for step = 1, 3 do
+			self.TweenService:Create(keyBox, TweenInfo.new(0.05, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+				Position = UDim2.new(original.X.Scale, original.X.Offset - 7, original.Y.Scale, original.Y.Offset),
+			}):Play()
+			task.wait(0.05)
+			self.TweenService:Create(keyBox, TweenInfo.new(0.05, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+				Position = UDim2.new(original.X.Scale, original.X.Offset + 7, original.Y.Scale, original.Y.Offset),
+			}):Play()
+			task.wait(0.05)
+		end
+		keyBox.Position = original
 	end
 
 	function app:Copy(value, successMessage)
@@ -2111,15 +2309,30 @@ function PeterHubV2:CreateStyledWindow(options)
 			self:ShowToast(self.LowEffects and "Low Effects enabled." or "Full Effects enabled.", "success")
 		end)
 
-		local mascotPanel = uiMake("Frame", {
-			Name = "AnimatedMascot",
+		self:BuildElephantMascot(self.Sidebar, {
+			Size = UDim2.new(1, 0, 0, 112),
+			Position = UDim2.new(0, 0, 1, 0),
 			AnchorPoint = Vector2.new(0, 1),
+		})
+	end
+
+	function app:BuildElephantMascot(parent, opts)
+		opts = opts or {}
+		local alwaysAnimate = opts.AlwaysAnimate == true
+		local lowEffects = opts.LowEffects ~= nil and opts.LowEffects or self:IsLowEffects()
+		local animateAllowed = function()
+			return alwaysAnimate or self:HudEffectsAllowed()
+		end
+
+		local mascotPanel = uiMake("Frame", {
+			Name = opts.Name or "AnimatedMascot",
+			AnchorPoint = opts.AnchorPoint or Vector2.new(0, 1),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
 			ClipsDescendants = true,
-			Position = UDim2.new(0, 0, 1, 0),
-			Size = UDim2.new(1, 0, 0, 112),
-		}, self.Sidebar)
+			Position = opts.Position or UDim2.new(0, 0, 1, 0),
+			Size = opts.Size or UDim2.new(1, 0, 0, 112),
+		}, parent)
 
 		for index = 1, 7 do
 			uiMake("Frame", {
@@ -2170,7 +2383,7 @@ function PeterHubV2:CreateStyledWindow(options)
 		if not lowEffects then
 			task.spawn(function()
 				while moonGlow.Parent do
-					if self:HudEffectsAllowed() then
+					if animateAllowed() then
 						self.TweenService:Create(moonGlow, TweenInfo.new(1.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
 							BackgroundTransparency = 0.58,
 							Size = UDim2.fromOffset(28, 28),
@@ -2238,7 +2451,7 @@ function PeterHubV2:CreateStyledWindow(options)
 		if not lowEffects then
 			task.spawn(function()
 				while mudPuddle.Parent and mudShine.Parent do
-					if self:HudEffectsAllowed() then
+					if animateAllowed() then
 						self.TweenService:Create(mudShine, TweenInfo.new(0.82, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
 							BackgroundTransparency = 0.16,
 							Size = UDim2.fromOffset(32, 2),
@@ -2262,7 +2475,7 @@ function PeterHubV2:CreateStyledWindow(options)
 		local treeGreen = Color3.fromRGB(66, 218, 167)
 		local treeGreenDark = Color3.fromRGB(25, 102, 85)
 		local treeTrunk = Color3.fromRGB(113, 79, 48)
-		local function treePixel(parent, x, y, w, h, color, z, transparency)
+		local function treePixel(parentTree, x, y, w, h, color, z, transparency)
 			local block = uiMake("Frame", {
 				BackgroundColor3 = color,
 				BackgroundTransparency = transparency or 0,
@@ -2270,7 +2483,7 @@ function PeterHubV2:CreateStyledWindow(options)
 				Position = UDim2.fromOffset(x, y),
 				Size = UDim2.fromOffset(w, h),
 				ZIndex = z,
-			}, parent)
+			}, parentTree)
 			uiCorner(block, 2)
 			return block
 		end
@@ -2305,7 +2518,7 @@ function PeterHubV2:CreateStyledWindow(options)
 			end
 			task.spawn(function()
 				while tree.Parent do
-					if self:HudEffectsAllowed() then
+					if animateAllowed() then
 						self.TweenService:Create(tree, TweenInfo.new(1.4, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
 							Position = secondPosition,
 						}):Play()
@@ -2471,7 +2684,7 @@ function PeterHubV2:CreateStyledWindow(options)
 			end
 			task.spawn(function()
 				while part.Parent do
-					if self:HudEffectsAllowed() then
+					if animateAllowed() then
 						self.TweenService:Create(part, TweenInfo.new(0.3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
 							Position = activePosition,
 							Rotation = activeRotation,
@@ -2562,7 +2775,7 @@ function PeterHubV2:CreateStyledWindow(options)
 		else
 			task.spawn(function()
 				while mascotPanel.Parent and pet.Parent and shadow.Parent do
-					if self:HudEffectsAllowed() then
+					if animateAllowed() then
 						pet.Position = UDim2.fromOffset(-84, 24)
 						shadow.Position = UDim2.fromOffset(-62, 92)
 						shadow.Size = UDim2.fromOffset(78, 7)
@@ -2624,6 +2837,8 @@ function PeterHubV2:CreateStyledWindow(options)
 				end
 			end)
 		end
+
+		return mascotPanel
 	end
 
 	function app:CreateGameCard(parent, gameInfo, index)
@@ -2940,19 +3155,36 @@ function PeterHubV2:CreateStyledWindow(options)
 			local key = (keyBox.Text or ""):gsub("%s+", "")
 			if key == "" then
 				self:SetStatus("Paste your key first.", "error")
+				self:ShakeKeyInput(keyBox)
 				return
 			end
 
 			if type(self.Options.VerifyKey) == "function" then
-				local callOk, verified, message = pcall(self.Options.VerifyKey, key, self)
-				if callOk and verified then
-					self:SetStatus(message or "Key verified.", "success")
-					if type(self.Options.OnKeyVerified) == "function" then
-						task.spawn(self.Options.OnKeyVerified, key, self)
-					end
-				else
-					self:SetStatus(message or tostring(verified or "Invalid key."), "error")
+				-- sdk.check_key performs an HTTP request and can block, so run
+				-- it off the input thread and show a loading overlay meanwhile.
+				if keyBox.Interactable ~= nil then
+					keyBox.Interactable = false
 				end
+				self:ShowKeyOverlay("loading", "Verifying key...")
+				task.spawn(function()
+					local callOk, verified, message = pcall(self.Options.VerifyKey, key, self)
+					if callOk and verified then
+						self:ShowKeyOverlay("success", message or "Key verified")
+						task.wait(0.8)
+						self:ShowKeyOverlay("hide")
+						self:SetStatus(message or "Key verified.", "success")
+						if type(self.Options.OnKeyVerified) == "function" then
+							task.spawn(self.Options.OnKeyVerified, key, self)
+						end
+					else
+						self:ShowKeyOverlay("hide")
+						if keyBox.Interactable ~= nil then
+							keyBox.Interactable = true
+						end
+						self:SetStatus(message or tostring(verified or "Invalid key."), "error")
+						self:ShakeKeyInput(keyBox)
+					end
+				end)
 				return
 			end
 
@@ -2967,12 +3199,21 @@ function PeterHubV2:CreateStyledWindow(options)
 			end
 
 			if valid then
-				self:SetStatus("Key verified.", "success")
-				if type(self.Options.OnKeyVerified) == "function" then
-					task.spawn(self.Options.OnKeyVerified, key, self)
+				if keyBox.Interactable ~= nil then
+					keyBox.Interactable = false
 				end
+				task.spawn(function()
+					self:ShowKeyOverlay("success", "Key verified")
+					task.wait(0.8)
+					self:ShowKeyOverlay("hide")
+					self:SetStatus("Key verified.", "success")
+					if type(self.Options.OnKeyVerified) == "function" then
+						task.spawn(self.Options.OnKeyVerified, key, self)
+					end
+				end)
 			else
 				self:SetStatus("No verify callback configured.", "warn")
+				self:ShakeKeyInput(keyBox)
 			end
 		end
 
@@ -3580,6 +3821,22 @@ function PeterHubV2:CreateStyledWindow(options)
 		app:ShowGetKey()
 	end
 
+	-- If a previously-verified key is cached, re-check it in the background
+	-- and skip the key prompt when it is still valid. The user still sees the
+	-- key page for a moment; a successful auto-verify immediately loads the
+	-- payload via OnKeyVerified.
+	if type(options.AutoVerifyKey) == "function" then
+		task.spawn(function()
+			local key = options.AutoVerifyKey()
+			if type(key) == "string" and key ~= "" and app.CurrentPage == "GetKey" then
+				app:SetStatus("Restoring session...", "warn")
+				if type(options.OnKeyVerified) == "function" then
+					task.spawn(options.OnKeyVerified, key, app)
+				end
+			end
+		end)
+	end
+
 	return app
 end
 
@@ -3596,12 +3853,66 @@ function PeterHubV2:CreateGetKeyWindow(options)
 end
 
 
-local PeterHub = PeterHubV2
+local MammozHub = PeterHubV2
+-- Backwards-compatible alias for payloads that still reference the old name.
+local PeterHub = MammozHub
 
 local JUNKIE_SERVICE = "test"
 local JUNKIE_IDENTIFIER = "1184939"
 local JUNKIE_PROVIDER = "test"
 local Junkie
+
+-- Verified-key persistence so the user does not re-enter the key every run.
+-- Best-effort: executors without file APIs simply skip caching. Keys are
+-- stored per game route because a JNKiE key is bound to one service.
+local KEY_FOLDER = "MammozHub"
+local function keyPath(routeKey)
+	return KEY_FOLDER .. "/verified_key_" .. tostring(routeKey or "default") .. ".txt"
+end
+local function hasFileSystemSupport()
+	local okW = pcall(function() return type(writefile) == "function" end)
+	local okR = pcall(function() return type(readfile) == "function" end)
+	local okI = pcall(function() return type(isfile) == "function" end)
+	return okW and okR and okI
+end
+local fileSystemSupported = hasFileSystemSupport()
+
+local function saveVerifiedKey(routeKey, key)
+	if not fileSystemSupported or type(key) ~= "string" or key == "" then
+		return false
+	end
+	if type(makefolder) == "function" then
+		pcall(makefolder, KEY_FOLDER)
+	end
+	local path = keyPath(routeKey)
+	local ok = pcall(writefile, path, key)
+	return ok
+end
+local function loadSavedVerifiedKey(routeKey)
+	if not fileSystemSupported then
+		return nil
+	end
+	local path = keyPath(routeKey)
+	local okExists, exists = pcall(isfile, path)
+	if not okExists or not exists then
+		return nil
+	end
+	local ok, content = pcall(readfile, path)
+	if not ok or type(content) ~= "string" or content == "" then
+		return nil
+	end
+	return content
+end
+local function clearSavedVerifiedKey(routeKey)
+	if not fileSystemSupported then
+		return false
+	end
+	local path = keyPath(routeKey)
+	if type(delfile) == "function" then
+		return pcall(delfile, path)
+	end
+	return pcall(writefile, path, "")
+end
 
 -- JNKiE error codes documented for External Loader. The code is kept in the
 -- message so service/dashboard configuration problems are easy to diagnose.
@@ -3665,7 +3976,7 @@ local function getJunkieKeyLink()
 	return tostring(link)
 end
 
-local function verifyJunkieKey(key)
+local function verifyJunkieKey(key, routeKey)
 	if type(key) ~= "string" then
 		return false, "Enter a valid key."
 	end
@@ -3686,9 +3997,18 @@ local function verifyJunkieKey(key)
 		end
 
 		env.SCRIPT_KEY = key
+		-- Cache the verified key so the next launch can skip the prompt.
+		if routeKey then
+			saveVerifiedKey(routeKey, key)
+		end
 		return true, result.message or "Key valid"
 	end
 
+	-- An invalid/expired/used key should not be trusted again: drop the
+	-- cached copy so the user is prompted to enter a fresh one.
+	if routeKey then
+		clearSavedVerifiedKey(routeKey)
+	end
 	return false, junkieReason(result, "Invalid key")
 end
 
@@ -3740,7 +4060,7 @@ local GAME_ROUTES = {
 	{
 		Key = "steal_an_egg",
 		Name = "Steal An Egg",
-		PlaceIds = { 107778070777162 },
+		PlaceIds = { 107778070777162, 114667206840982 },
 		Url = "https://api.jnkie.com/api/v1/luascripts/public/57ba694c90ab41553d0e587a16827e5c459b797686c2bc25ba771cb8bfadaef6/download",
 	},
 	{
@@ -3767,6 +4087,534 @@ local GAME_ROUTES = {
 		PlaceIds = { 142823291 },
 		Url = "",
 	},
+	{
+		Key = "ammoclick",
+		Name = "+1 Ammo Per Click",
+		PlaceIds = { 139907538117897 },
+		Url = "",
+	},
+	{
+		Key = "cleanleaves",
+		Name = "Clean all the leaves",
+		PlaceIds = { 92637789841354, 100068273119174 },
+		Url = "",
+	},
+	{
+		Key = "aurabrainrots",
+		Name = "Aura For Brainrots",
+		PlaceIds = { 122526789002601 },
+		Url = "",
+	},
+	{
+		Key = "beflash",
+		Name = "Be Flash For Brainrots",
+		PlaceIds = { 136066387156306 },
+		Url = "",
+	},
+	{
+		Key = "drainwater",
+		Name = "+1 Drain Water Per Click",
+		PlaceIds = { 103883942725157 },
+		Url = "",
+	},
+	{
+		Key = "demon_blade",
+		Name = "Demon Blade",
+		PlaceIds = { 15014439457, 98470671607734 },
+		Url = "",
+	},
+	{
+		Key = "drillfarm",
+		Name = "Make a Drill Farm",
+		PlaceIds = { 79315121100812 },
+		Url = "",
+	},
+	{
+		Key = "digclean",
+		Name = "Dig & Clean",
+		PlaceIds = { 83038462357724 },
+		Url = "",
+	},
+	{
+		Key = "jetpackbrainrots",
+		Name = "+1 Jetpack for Brainrots",
+		PlaceIds = { 80234914611737 },
+		Url = "",
+	},
+	{
+		Key = "haze_piece",
+		Name = "Haze Piece",
+		PlaceIds = { 6918802270, 14979402479, 99664616626491 },
+		Url = "",
+	},
+	{
+		Key = "king_legacy",
+		Name = "King Legacy",
+		PlaceIds = { 4520749081, 6381829480, 15759515082 },
+		Url = "",
+	},
+	{
+		Key = "sailor_piece",
+		Name = "Sailor Piece",
+		PlaceIds = { 77747658251236, 130167267952199 },
+		Url = "",
+	},
+	{
+		Key = "logobrainrots",
+		Name = "Logo For Brainrots",
+		PlaceIds = { 123959902101040 },
+		Url = "",
+	},
+	{
+		Key = "mineclick",
+		Name = "+1 Mine Per Click",
+		PlaceIds = { 74193805629461 },
+		Url = "",
+	},
+	{
+		Key = "muscleevo",
+		Name = "+1 Muscle Evolution",
+		PlaceIds = { 133007106457547 },
+		Url = "",
+	},
+	{
+		Key = "looksclick",
+		Name = "+1 Looks Per Click",
+		PlaceIds = { 102355196524321 },
+		Url = "",
+	},
+	{
+		Key = "poortorich",
+		Name = "+1 Poor To Rich",
+		PlaceIds = { 96003649748017 },
+		Url = "",
+	},
+	{
+		Key = "luckyfish",
+		Name = "Pull a Lucky Fish",
+		PlaceIds = { 112781315318195 },
+		Url = "",
+	},
+	{
+		Key = "powerclick",
+		Name = "+1 Power Per Click",
+		PlaceIds = { 74889851913797 },
+		Url = "",
+	},
+	{
+		Key = "powerblast",
+		Name = "Power Blast Lucky Blocks",
+		PlaceIds = { 119822977170203 },
+		Url = "",
+	},
+	{
+		Key = "pickaxesim",
+		Name = "Pickaxe Simulator",
+		PlaceIds = { 82013336390273 },
+		Url = "",
+	},
+	{
+		Key = "selllemons",
+		Name = "Sell Lemons",
+		PlaceIds = { 79268393072444 },
+		Url = "",
+	},
+	{
+		Key = "skillpoints",
+		Name = "+1 Skill Point Legends",
+		PlaceIds = { 135668295983945 },
+		Url = "",
+	},
+	{
+		Key = "speedevolve",
+		Name = "+1 Speed Evolve",
+		PlaceIds = { 83569851223739, 107654875426558 },
+		Url = "",
+	},
+	{
+		Key = "speedmonkey",
+		Name = "+1 Speed Monkey Escape",
+		PlaceIds = { 114697347887839 },
+		Url = "",
+	},
+	{
+		Key = "spinjitsu",
+		Name = "+1 Spinjitsu Escape",
+		PlaceIds = { 131910189515331 },
+		Url = "",
+	},
+	{
+		Key = "strengthclick",
+		Name = "+1 Strength Per Click",
+		PlaceIds = { 120766736586332 },
+		Url = "",
+	},
+	{
+		Key = "wingsbrainrots",
+		Name = "+1 Wings for Brainrots",
+		PlaceIds = { 84332574190497 },
+		Url = "",
+	},
+	{
+		Key = "blox_fruits",
+		Name = "Blox Fruits",
+		PlaceIds = { 2753915549, 4442272183, 7449423635 },
+		Url = "",
+	},
+	{
+		Key = "anime_apocalypse",
+		Name = "Anime Apocalypse",
+		PlaceIds = { 140409475718339 },
+		Url = "",
+	},
+	{
+		Key = "brookhaven",
+		Name = "Brookhaven RP",
+		PlaceIds = { 7247162321 },
+		Url = "",
+	},
+	{
+		Key = "adopt_me",
+		Name = "Adopt Me!",
+		PlaceIds = { 920587237 },
+		Url = "",
+	},
+	{
+		Key = "arsenal",
+		Name = "Arsenal",
+		PlaceIds = { 286090429 },
+		Url = "",
+	},
+	{
+		Key = "blade_ball",
+		Name = "Blade Ball",
+		PlaceIds = { 13769526381 },
+		Url = "",
+	},
+	{
+		Key = "doors",
+		Name = "DOORS",
+		PlaceIds = { 6839171747 },
+		Url = "",
+	},
+	{
+		Key = "pet_sim_99",
+		Name = "Pet Simulator 99",
+		PlaceIds = { 8737602446 },
+		Url = "",
+	},
+	{
+		Key = "bee_swarm",
+		Name = "Bee Swarm Simulator",
+		PlaceIds = { 1537690962 },
+		Url = "",
+	},
+	{
+		Key = "tower_of_hell",
+		Name = "Tower of Hell",
+		PlaceIds = { 196208686 },
+		Url = "",
+	},
+	{
+		Key = "grow_a_garden",
+		Name = "Grow A Garden",
+		PlaceIds = { 16708373721 },
+		Url = "",
+	},
+	{
+		Key = "anime_defenders",
+		Name = "Anime Defenders",
+		PlaceIds = { 16568935554 },
+		Url = "",
+	},
+	{
+		Key = "sakura_stand",
+		Name = "Sakura Stand",
+		PlaceIds = { 15332590452 },
+		Url = "",
+	},
+	{
+		Key = "anime_adventures",
+		Name = "Anime Adventures",
+		PlaceIds = { 8304191830 },
+		Url = "",
+	},
+	{
+		Key = "phantom_forces",
+		Name = "Phantom Forces",
+		PlaceIds = { 292439477 },
+		Url = "",
+	},
+	{
+		Key = "natural_disaster",
+		Name = "Natural Disaster Survival",
+		PlaceIds = { 189707 },
+		Url = "",
+	},
+	{
+		Key = "build_a_boat",
+		Name = "Build A Boat For Treasure",
+		PlaceIds = { 5374784273 },
+		Url = "",
+	},
+	{
+		Key = "ragdoll_engine",
+		Name = "Ragdoll Engine",
+		PlaceIds = { 2788229376 },
+		Url = "",
+	},
+	{
+		Key = "big_paintball",
+		Name = "Big Paintball",
+		PlaceIds = { 3537628128 },
+		Url = "",
+	},
+	{
+		Key = "counter_blox",
+		Name = "Counter Blox",
+		PlaceIds = { 3003369924 },
+		Url = "",
+	},
+	{
+		Key = "anime_vanguards",
+		Name = "Anime Vanguards",
+		PlaceIds = { 8786550243 },
+		Url = "",
+	},
+	{
+		Key = "jujutsu_shenanigans",
+		Name = "Jujutsu Shenanigans",
+		PlaceIds = { 8641358417 },
+		Url = "",
+	},
+	{
+		Key = "sols_rng",
+		Name = "Sol's RNG",
+		PlaceIds = { 15368605381 },
+		Url = "",
+	},
+	{
+		Key = "anime_champions",
+		Name = "Anime Champions",
+		PlaceIds = { 10313427406 },
+		Url = "",
+	},
+	{
+		Key = "anime_fighters",
+		Name = "Anime Fighters Simulator",
+		PlaceIds = { 5297603592 },
+		Url = "",
+	},
+	{
+		Key = "destiny_stars",
+		Name = "Destiny Stars Battlegrounds",
+		PlaceIds = { 13775932850 },
+		Url = "",
+	},
+	{
+		Key = "anime_rifts",
+		Name = "Anime Rifts",
+		PlaceIds = { 6615551380 },
+		Url = "",
+	},
+	{
+		Key = "anime_world_td",
+		Name = "Anime World Tower Defense",
+		PlaceIds = { 11638978456 },
+		Url = "",
+	},
+	{
+		Key = "elemental_bg",
+		Name = "Elemental Battlegrounds",
+		PlaceIds = { 3016663482 },
+		Url = "",
+	},
+	{
+		Key = "world_zero",
+		Name = "World // Zero",
+		PlaceIds = { 2717805547 },
+		Url = "",
+	},
+	{
+		Key = "ninja_legends",
+		Name = "Ninja Legends",
+		PlaceIds = { 3954604612 },
+		Url = "",
+	},
+	{
+		Key = "bubble_gum",
+		Name = "Bubble Gum Simulator",
+		PlaceIds = { 314516530 },
+		Url = "",
+	},
+	{
+		Key = "mining_sim",
+		Name = "Mining Simulator",
+		PlaceIds = { 1411076837 },
+		Url = "",
+	},
+	{
+		Key = "treasure_quest",
+		Name = "Treasure Quest",
+		PlaceIds = { 2372544382 },
+		Url = "",
+	},
+	{
+		Key = "saber_sim",
+		Name = "Saber Simulator",
+		PlaceIds = { 3462270031 },
+		Url = "",
+	},
+	{
+		Key = "anime_adventure",
+		Name = "Anime Adventure",
+		PlaceIds = { 8384257137 },
+		Url = "",
+	},
+	{
+		Key = "forsaken",
+		Name = "Forsaken",
+		PlaceIds = { 13770989446 },
+		Url = "",
+	},
+	{
+		Key = "zombie_uprising",
+		Name = "Zombie Uprising",
+		PlaceIds = { 5159239355 },
+		Url = "",
+	},
+	{
+		Key = "world_fighters",
+		Name = "World Fighters",
+		PlaceIds = { 0 },
+		Url = "",
+	},
+	{
+		Key = "weak_legacy_2",
+		Name = "Weak Legacy 2",
+		PlaceIds = { 0 },
+		Url = "",
+	},
+	{
+		Key = "one_piece_mythical",
+		Name = "One Piece Mythical",
+		PlaceIds = { 0 },
+		Url = "",
+	},
+	{
+		Key = "anime_warriors",
+		Name = "Anime Warriors",
+		PlaceIds = { 0 },
+		Url = "",
+	},
+	{
+		Key = "anime_expedition",
+		Name = "Anime Expedition",
+		PlaceIds = { 0 },
+		Url = "",
+	},
+	{
+		Key = "anime_final_quest",
+		Name = "Anime Final Quest",
+		PlaceIds = { 0 },
+		Url = "",
+	},
+	{
+		Key = "anime_tactical",
+		Name = "Anime Tactical",
+		PlaceIds = { 0 },
+		Url = "",
+	},
+	{
+		Key = "anime_ranger_x",
+		Name = "AnimeRangerX",
+		PlaceIds = { 0 },
+		Url = "",
+	},
+	{
+		Key = "blade_spin",
+		Name = "BLADE SPIN",
+		PlaceIds = { 0 },
+		Url = "",
+	},
+	{
+		Key = "brainblast",
+		Name = "Brainblast",
+		PlaceIds = { 0 },
+		Url = "",
+	},
+	{
+		Key = "broken_blade",
+		Name = "Broken Blade",
+		PlaceIds = { 0 },
+		Url = "",
+	},
+	{
+		Key = "pool_1v1",
+		Name = "8 Ball Pool 1v1",
+		PlaceIds = { 0 },
+		Url = "",
+	},
+	{
+		Key = "guess_logo",
+		Name = "Guess My Logo",
+		PlaceIds = { 0 },
+		Url = "",
+	},
+	{
+		Key = "guess_football",
+		Name = "Guess My Football Country",
+		PlaceIds = { 0 },
+		Url = "",
+	},
+	{
+		Key = "kaitun",
+		Name = "Kaitun",
+		PlaceIds = { 0 },
+		Url = "",
+	},
+	{
+		Key = "allstar",
+		Name = "All Star Tower Defense",
+		PlaceIds = { 0 },
+		Url = "",
+	},
+	{
+		Key = "lucky_block",
+		Name = "Kick a Lucky Block",
+		PlaceIds = { 0 },
+		Url = "",
+	},
+	{
+		Key = "jump_slimes",
+		Name = "Jump to Steal Slimes",
+		PlaceIds = { 0 },
+		Url = "",
+	},
+	{
+		Key = "jump_soccer",
+		Name = "Jump to Steal Soccer Players",
+		PlaceIds = { 0 },
+		Url = "",
+	},
+	{
+		Key = "iron_soul",
+		Name = "Iron Soul",
+		PlaceIds = { 0 },
+		Url = "",
+	},
+	{
+		Key = "rebirth_champions",
+		Name = "Rebirth Champions",
+		PlaceIds = { 0 },
+		Url = "",
+	},
+	{
+		Key = "slime_rng",
+		Name = "Slime RNG",
+		PlaceIds = { 0 },
+		Url = "",
+	},
 }
 
 local function routeContainsPlaceId(route, placeId)
@@ -3791,12 +4639,12 @@ end
 -- that has no matching payload route.
 local CURRENT_ROUTE, ROUTE_ERROR = findGameRoute()
 if not CURRENT_ROUTE then
-	warn("[Peter Hub v2] " .. tostring(ROUTE_ERROR))
+	warn("[Mammoz Hub] " .. tostring(ROUTE_ERROR))
 	return nil
 end
 
 if type(CURRENT_ROUTE.Url) ~= "string" or CURRENT_ROUTE.Url == "" then
-	warn("[Peter Hub v2] JNKiE download URL is missing for " .. tostring(CURRENT_ROUTE.Name))
+	warn("[Mammoz Hub] JNKiE download URL is missing for " .. tostring(CURRENT_ROUTE.Name))
 	return nil
 end
 
@@ -3813,6 +4661,7 @@ local function makeMainContext(key, app)
 		App = app,
 		LoaderApp = app,
 		PeterHub = PeterHub,
+		MammozHub = MammozHub,
 		MainUrl = MAIN_URL,
 		ScriptUrl = MAIN_URL,
 		Route = CURRENT_ROUTE,
@@ -3823,6 +4672,7 @@ local function makeMainContext(key, app)
 		UniverseId = game.GameId,
 	}
 	env.MAMMOZ_LOADER_CONTEXT = env.PETER_HUB_V2_CONTEXT
+	env.MAMMOZ_HUB_CONTEXT = env.PETER_HUB_V2_CONTEXT
 	env.MAMMOZ_GAME_ROUTE = CURRENT_ROUTE
 	return env.PETER_HUB_V2_CONTEXT
 end
@@ -3894,7 +4744,7 @@ local LoaderPreviewGames = {
 		Description = "AOTR - Titan Farm",
 		Details = "Auto Farm, Titan Kill, Auto Quest",
 		Features = { "AUTO FARM", "TITAN KILL", "AUTO QUEST", "MOBILE" },
-		Status = "FREE",
+		Status = "SOON",
 		PlaceId = 13379208636,
 	},
 	{
@@ -3902,7 +4752,7 @@ local LoaderPreviewGames = {
 		Description = "Auto Pack - Reroll",
 		Details = "Pack opener, card fusion and farm",
 		Features = { "AUTO PACK", "REROLL", "CARD FUSION", "AUTO FARM" },
-		Status = "FREE",
+		Status = "SOON",
 		PlaceId = 125039475354804,
 	},
 	{
@@ -3910,7 +4760,7 @@ local LoaderPreviewGames = {
 		Description = "Auto Kill - Sniper",
 		Details = "Hitbox expand, auto shoot and kill",
 		Features = { "AIM", "HITBOX", "AUTO SHOOT", "AUTO KILL" },
-		Status = "FREE",
+		Status = "SOON",
 		PlaceId = 122446657157717,
 	},
 	{
@@ -3918,7 +4768,7 @@ local LoaderPreviewGames = {
 		Description = "RATF - Auto Roll",
 		Details = "Auto roll, auto fight bosses, upgrades",
 		Features = { "AUTO ROLL", "BOSS FARM", "AUTO FIGHT", "UPGRADES" },
-		Status = "FREE",
+		Status = "SOON",
 		PlaceId = 107653945083776,
 	},
 	{
@@ -3926,11 +4776,11 @@ local LoaderPreviewGames = {
 		Description = "GKR - Auto Farm",
 		Details = "Auto combat, auto quest, skill spam",
 		Features = { "AUTO COMBAT", "AUTO QUEST", "SKILL SPAM", "SPEED" },
-		Status = "FREE",
+		Status = "SOON",
 		PlaceId = 128736949265057,
 	},
 	{
-		Name = "99 Nights",
+		Name = "99 Nights in the Forest",
 		Description = "99Nights - Forest",
 		Details = "Auto survive, wood/scrap farm, AFK",
 		Features = { "AUTO SURVIVE", "WOOD FARM", "SCRAP FARM", "AFK" },
@@ -3951,7 +4801,7 @@ local LoaderPreviewGames = {
 		Details = "Egg route",
 		Features = { "EGG", "PET", "FARM" },
 		Status = "FREE",
-		PlaceId = 114667206840982,
+		PlaceId = 107778070777162,
 	},
 	{
 		Name = "Fish",
@@ -3975,7 +4825,7 @@ local LoaderPreviewGames = {
 		Details = "Unlock premium maps and VIP features",
 		Features = { "AUTO MINE", "ORE FARM", "VIP ROUTES", "SELL AUTO" },
 		Status = "VIP",
-		PlaceId = 0,
+		PlaceId = 125927821145949,
 	},
 	{
 		Name = "Murder Mystery 2",
@@ -3984,6 +4834,710 @@ local LoaderPreviewGames = {
 		Features = { "ESP", "AUTO FARM", "COIN FARM", "SERVER HOP" },
 		Status = "VIP",
 		PlaceId = 142823291,
+	},
+	{
+		Name = "+1 Ammo Per Click",
+		Description = "Clicker farm",
+		Details = "Ammo click farm loop",
+		Features = { "AUTO CLICK", "AUTO FARM", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 139907538117897,
+	},
+	{
+		Name = "Clean all the leaves",
+		Description = "Leaf cleanup",
+		Details = "Collect, deposit and farm leaves",
+		Features = { "AUTO COLLECT", "AUTO DEPOSIT", "FARM" },
+		Status = "SOON",
+		PlaceId = 92637789841354,
+	},
+	{
+		Name = "Aura For Brainrots",
+		Description = "Brainrot farm",
+		Details = "Aura farm loop",
+		Features = { "AUTO FARM", "AUTO HATCH", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 122526789002601,
+	},
+	{
+		Name = "Be Flash For Brainrots",
+		Description = "Brainrot farm",
+		Details = "Flash speed farm",
+		Features = { "AUTO FARM", "SPEED", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 136066387156306,
+	},
+	{
+		Name = "+1 Drain Water Per Click",
+		Description = "Clicker farm",
+		Details = "Drain water click farm",
+		Features = { "AUTO CLICK", "AUTO FARM", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 103883942725157,
+	},
+	{
+		Name = "Demon Blade",
+		Description = "Blade RPG",
+		Details = "Auto farm and combat",
+		Features = { "AUTO FARM", "COMBAT", "BOSS" },
+		Status = "SOON",
+		PlaceId = 15014439457,
+	},
+	{
+		Name = "Make a Drill Farm",
+		Description = "Drill farm",
+		Details = "Drill and farm resources",
+		Features = { "AUTO DRILL", "AUTO FARM", "SELL" },
+		Status = "SOON",
+		PlaceId = 79315121100812,
+	},
+	{
+		Name = "Dig & Clean",
+		Description = "Dig and clean",
+		Details = "Dig, clean and farm",
+		Features = { "AUTO DIG", "AUTO CLEAN", "FARM" },
+		Status = "SOON",
+		PlaceId = 83038462357724,
+	},
+	{
+		Name = "+1 Jetpack for Brainrots",
+		Description = "Brainrot farm",
+		Details = "Jetpack farm loop",
+		Features = { "AUTO FARM", "AUTO HATCH", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 80234914611737,
+	},
+	{
+		Name = "Haze Piece",
+		Description = "One Piece RPG",
+		Details = "Auto farm, quests and bosses",
+		Features = { "AUTO FARM", "AUTO QUEST", "BOSS FARM" },
+		Status = "SOON",
+		PlaceId = 6918802270,
+	},
+	{
+		Name = "King Legacy",
+		Description = "One Piece RPG",
+		Details = "Auto farm and raids",
+		Features = { "AUTO FARM", "RAID", "BOSS" },
+		Status = "SOON",
+		PlaceId = 4520749081,
+	},
+	{
+		Name = "Sailor Piece",
+		Description = "One Piece RPG",
+		Details = "Auto farm and sea events",
+		Features = { "AUTO FARM", "SEA EVENT", "BOSS" },
+		Status = "SOON",
+		PlaceId = 77747658251236,
+	},
+	{
+		Name = "Logo For Brainrots",
+		Description = "Brainrot farm",
+		Details = "Logo farm loop",
+		Features = { "AUTO FARM", "AUTO HATCH", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 123959902101040,
+	},
+	{
+		Name = "+1 Mine Per Click",
+		Description = "Clicker mine",
+		Details = "Mine click farm",
+		Features = { "AUTO CLICK", "AUTO FARM", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 74193805629461,
+	},
+	{
+		Name = "+1 Muscle Evolution",
+		Description = "Evolution sim",
+		Details = "Muscle evolution farm",
+		Features = { "AUTO FARM", "EVOLVE", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 133007106457547,
+	},
+	{
+		Name = "+1 Looks Per Click",
+		Description = "Clicker farm",
+		Details = "Looks click farm",
+		Features = { "AUTO CLICK", "AUTO FARM", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 102355196524321,
+	},
+	{
+		Name = "+1 Poor To Rich",
+		Description = "Clicker rich",
+		Details = "Poor to rich farm",
+		Features = { "AUTO CLICK", "AUTO FARM", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 96003649748017,
+	},
+	{
+		Name = "Pull a Lucky Fish",
+		Description = "Fishing sim",
+		Details = "Lucky fish farm",
+		Features = { "AUTO FISH", "SELL", "COLLECTION" },
+		Status = "SOON",
+		PlaceId = 112781315318195,
+	},
+	{
+		Name = "+1 Power Per Click",
+		Description = "Clicker power",
+		Details = "Power click farm",
+		Features = { "AUTO CLICK", "AUTO FARM", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 74889851913797,
+	},
+	{
+		Name = "Power Blast Lucky Blocks",
+		Description = "Lucky blocks",
+		Details = "Power blast farm",
+		Features = { "AUTO FARM", "LUCKY BLOCK", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 119822977170203,
+	},
+	{
+		Name = "Pickaxe Simulator",
+		Description = "Mining sim",
+		Details = "Pickaxe mine farm",
+		Features = { "AUTO MINE", "SELL", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 82013336390273,
+	},
+	{
+		Name = "Sell Lemons",
+		Description = "Lemon farm",
+		Details = "Sell lemons farm",
+		Features = { "AUTO FARM", "SELL", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 79268393072444,
+	},
+	{
+		Name = "+1 Skill Point Legends",
+		Description = "Skill sim",
+		Details = "Skill point farm",
+		Features = { "AUTO FARM", "SKILL", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 135668295983945,
+	},
+	{
+		Name = "+1 Speed Evolve",
+		Description = "Evolution sim",
+		Details = "Speed evolve farm",
+		Features = { "AUTO FARM", "EVOLVE", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 83569851223739,
+	},
+	{
+		Name = "+1 Speed Monkey Escape",
+		Description = "Speed sim",
+		Details = "Speed monkey farm",
+		Features = { "AUTO FARM", "SPEED", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 114697347887839,
+	},
+	{
+		Name = "+1 Spinjitsu Escape",
+		Description = "Spinjitsu sim",
+		Details = "Spinjitsu escape farm",
+		Features = { "AUTO FARM", "SPIN", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 131910189515331,
+	},
+	{
+		Name = "+1 Strength Per Click",
+		Description = "Clicker strength",
+		Details = "Strength click farm",
+		Features = { "AUTO CLICK", "AUTO FARM", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 120766736586332,
+	},
+	{
+		Name = "+1 Wings for Brainrots",
+		Description = "Brainrot farm",
+		Details = "Wings farm loop",
+		Features = { "AUTO FARM", "AUTO HATCH", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 84332574190497,
+	},
+	{
+		Name = "Blox Fruits",
+		Description = "One Piece RPG",
+		Details = "Auto farm, raids and fruits",
+		Features = { "AUTO FARM", "RAID", "FRUIT", "BOSS" },
+		Status = "SOON",
+		PlaceId = 2753915549,
+	},
+	{
+		Name = "Anime Apocalypse",
+		Description = "Anime RPG",
+		Details = "Auto farm and quests",
+		Features = { "AUTO FARM", "AUTO QUEST", "BOSS" },
+		Status = "SOON",
+		PlaceId = 140409475718339,
+	},
+	{
+		Name = "Brookhaven RP",
+		Description = "Roleplay",
+		Details = "Brookhaven roleplay tools",
+		Features = { "TELEPORT", "TOOLS", "PLAYER" },
+		Status = "SOON",
+		PlaceId = 7247162321,
+	},
+	{
+		Name = "Adopt Me!",
+		Description = "Pet sim",
+		Details = "Adopt and trade pets",
+		Features = { "AUTO FARM", "PETS", "TRADE" },
+		Status = "SOON",
+		PlaceId = 920587237,
+	},
+	{
+		Name = "Arsenal",
+		Description = "FPS",
+		Details = "Arsenal aimbot and farm",
+		Features = { "AIMBOT", "AUTO FARM", "KILL" },
+		Status = "SOON",
+		PlaceId = 286090429,
+	},
+	{
+		Name = "Blade Ball",
+		Description = "Deflect game",
+		Details = "Blade ball deflect and farm",
+		Features = { "AUTO DEFLECT", "AUTO FARM", "BLOCK" },
+		Status = "SOON",
+		PlaceId = 13769526381,
+	},
+	{
+		Name = "DOORS",
+		Description = "Horror",
+		Details = "Doors entity and farm",
+		Features = { "AUTO FARM", "ENTITY", "COLLECT" },
+		Status = "SOON",
+		PlaceId = 6839171747,
+	},
+	{
+		Name = "Pet Simulator 99",
+		Description = "Pet sim",
+		Details = "Pet farm and eggs",
+		Features = { "AUTO FARM", "EGGS", "HATCH" },
+		Status = "SOON",
+		PlaceId = 8737602446,
+	},
+	{
+		Name = "Bee Swarm Simulator",
+		Description = "Sim",
+		Details = "Bee swarm farm",
+		Features = { "AUTO FARM", "COLLECT", "QUEST" },
+		Status = "SOON",
+		PlaceId = 1537690962,
+	},
+	{
+		Name = "Tower of Hell",
+		Description = "Obby",
+		Details = "Tower of hell skip",
+		Features = { "AUTO SKIP", "SPEED", "TELEPORT" },
+		Status = "SOON",
+		PlaceId = 196208686,
+	},
+	{
+		Name = "Grow A Garden",
+		Description = "Farm sim",
+		Details = "Grow a garden farm",
+		Features = { "AUTO FARM", "PLANT", "SELL" },
+		Status = "SOON",
+		PlaceId = 16708373721,
+	},
+	{
+		Name = "Anime Defenders",
+		Description = "Tower defense",
+		Details = "Anime defenders farm",
+		Features = { "AUTO FARM", "AUTO PLACE", "UPGRADE" },
+		Status = "SOON",
+		PlaceId = 16568935554,
+	},
+	{
+		Name = "Sakura Stand",
+		Description = "Anime RPG",
+		Details = "Sakura stand farm",
+		Features = { "AUTO FARM", "BOSS", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 15332590452,
+	},
+	{
+		Name = "Anime Adventures",
+		Description = "Tower defense",
+		Details = "Anime adventures farm",
+		Features = { "AUTO FARM", "AUTO PLACE", "UPGRADE" },
+		Status = "SOON",
+		PlaceId = 8304191830,
+	},
+	{
+		Name = "Phantom Forces",
+		Description = "FPS",
+		Details = "Phantom forces aimbot",
+		Features = { "AIMBOT", "ESP", "AUTO FARM" },
+		Status = "SOON",
+		PlaceId = 292439477,
+	},
+	{
+		Name = "Natural Disaster Survival",
+		Description = "Survival",
+		Details = "Natural disaster survive",
+		Features = { "AUTO SURVIVE", "FARM" },
+		Status = "SOON",
+		PlaceId = 189707,
+	},
+	{
+		Name = "Build A Boat For Treasure",
+		Description = "Build",
+		Details = "Build a boat farm",
+		Features = { "AUTO BUILD", "FARM" },
+		Status = "SOON",
+		PlaceId = 5374784273,
+	},
+	{
+		Name = "Ragdoll Engine",
+		Description = "Fun",
+		Details = "Ragdoll engine tools",
+		Features = { "TOOLS", "FLING", "PLAYER" },
+		Status = "SOON",
+		PlaceId = 2788229376,
+	},
+	{
+		Name = "Big Paintball",
+		Description = "FPS",
+		Details = "Big paintball aimbot",
+		Features = { "AIMBOT", "AUTO FARM", "KILL" },
+		Status = "SOON",
+		PlaceId = 3537628128,
+	},
+	{
+		Name = "Counter Blox",
+		Description = "FPS",
+		Details = "Counter blox aimbot",
+		Features = { "AIMBOT", "ESP", "AUTO FARM" },
+		Status = "SOON",
+		PlaceId = 3003369924,
+	},
+	{
+		Name = "Anime Vanguards",
+		Description = "Tower defense",
+		Details = "Anime vanguards farm",
+		Features = { "AUTO FARM", "AUTO PLACE", "UPGRADE" },
+		Status = "SOON",
+		PlaceId = 8786550243,
+	},
+	{
+		Name = "Jujutsu Shenanigans",
+		Description = "Fighting",
+		Details = "Jujutsu shenanigans farm",
+		Features = { "AUTO FARM", "COMBAT", "BOSS" },
+		Status = "SOON",
+		PlaceId = 8641358417,
+	},
+	{
+		Name = "Sol's RNG",
+		Description = "RNG",
+		Details = "Sol's RNG auto roll",
+		Features = { "AUTO ROLL", "AUTO FARM" },
+		Status = "SOON",
+		PlaceId = 15368605381,
+	},
+	{
+		Name = "Anime Champions",
+		Description = "Anime RPG",
+		Details = "Anime champions farm",
+		Features = { "AUTO FARM", "BOSS", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 10313427406,
+	},
+	{
+		Name = "Anime Fighters Simulator",
+		Description = "Fighting sim",
+		Details = "Anime fighters farm",
+		Features = { "AUTO FARM", "AUTO HATCH", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 5297603592,
+	},
+	{
+		Name = "Destiny Stars Battlegrounds",
+		Description = "Battlegrounds",
+		Details = "Destiny stars farm",
+		Features = { "AUTO FARM", "COMBAT", "BOSS" },
+		Status = "SOON",
+		PlaceId = 13775932850,
+	},
+	{
+		Name = "Anime Rifts",
+		Description = "Anime RPG",
+		Details = "Anime rifts farm",
+		Features = { "AUTO FARM", "BOSS", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 6615551380,
+	},
+	{
+		Name = "Anime World Tower Defense",
+		Description = "Tower defense",
+		Details = "Anime world TD farm",
+		Features = { "AUTO FARM", "AUTO PLACE", "UPGRADE" },
+		Status = "SOON",
+		PlaceId = 11638978456,
+	},
+	{
+		Name = "Elemental Battlegrounds",
+		Description = "Fighting",
+		Details = "Elemental battlegrounds farm",
+		Features = { "AUTO FARM", "COMBAT", "BOSS" },
+		Status = "SOON",
+		PlaceId = 3016663482,
+	},
+	{
+		Name = "World // Zero",
+		Description = "RPG",
+		Details = "World zero farm",
+		Features = { "AUTO FARM", "QUEST", "BOSS" },
+		Status = "SOON",
+		PlaceId = 2717805547,
+	},
+	{
+		Name = "Ninja Legends",
+		Description = "Training sim",
+		Details = "Ninja legends farm",
+		Features = { "AUTO TRAIN", "AUTO FARM", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 3954604612,
+	},
+	{
+		Name = "Bubble Gum Simulator",
+		Description = "Sim",
+		Details = "Bubble gum farm",
+		Features = { "AUTO FARM", "HATCH", "PETS" },
+		Status = "SOON",
+		PlaceId = 314516530,
+	},
+	{
+		Name = "Mining Simulator",
+		Description = "Mining sim",
+		Details = "Mining simulator farm",
+		Features = { "AUTO MINE", "SELL", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 1411076837,
+	},
+	{
+		Name = "Treasure Quest",
+		Description = "RPG",
+		Details = "Treasure quest farm",
+		Features = { "AUTO FARM", "BOSS", "LOOT" },
+		Status = "SOON",
+		PlaceId = 2372544382,
+	},
+	{
+		Name = "Saber Simulator",
+		Description = "Training sim",
+		Details = "Saber simulator farm",
+		Features = { "AUTO TRAIN", "AUTO FARM", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 3462270031,
+	},
+	{
+		Name = "Anime Adventure",
+		Description = "Anime RPG",
+		Details = "Anime adventure farm",
+		Features = { "AUTO FARM", "BOSS", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 8384257137,
+	},
+	{
+		Name = "Forsaken",
+		Description = "Asym horror",
+		Details = "Forsaken survive and farm",
+		Features = { "AUTO FARM", "SURVIVE", "KILL" },
+		Status = "SOON",
+		PlaceId = 13770989446,
+	},
+	{
+		Name = "Zombie Uprising",
+		Description = "Zombie FPS",
+		Details = "Zombie uprising farm",
+		Features = { "AUTO FARM", "KILL", "WAVE" },
+		Status = "SOON",
+		PlaceId = 5159239355,
+	},
+	{
+		Name = "World Fighters",
+		Description = "Fighting",
+		Details = "World fighters farm",
+		Features = { "AUTO FARM", "COMBAT", "BOSS" },
+		Status = "SOON",
+		PlaceId = 0,
+	},
+	{
+		Name = "Weak Legacy 2",
+		Description = "Anime RPG",
+		Details = "Weak legacy 2 farm",
+		Features = { "AUTO FARM", "BOSS", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 0,
+	},
+	{
+		Name = "One Piece Mythical",
+		Description = "One Piece RPG",
+		Details = "One piece mythical farm",
+		Features = { "AUTO FARM", "BOSS", "RAID" },
+		Status = "SOON",
+		PlaceId = 0,
+	},
+	{
+		Name = "Anime Warriors",
+		Description = "Anime RPG",
+		Details = "Anime warriors farm",
+		Features = { "AUTO FARM", "BOSS", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 0,
+	},
+	{
+		Name = "Anime Expedition",
+		Description = "Anime RPG",
+		Details = "Anime expedition farm",
+		Features = { "AUTO FARM", "BOSS", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 0,
+	},
+	{
+		Name = "Anime Final Quest",
+		Description = "Anime RPG",
+		Details = "Anime final quest farm",
+		Features = { "AUTO FARM", "BOSS", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 0,
+	},
+	{
+		Name = "Anime Tactical",
+		Description = "Anime RPG",
+		Details = "Anime tactical farm",
+		Features = { "AUTO FARM", "COMBAT", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 0,
+	},
+	{
+		Name = "AnimeRangerX",
+		Description = "Anime RPG",
+		Details = "AnimeRangerX farm",
+		Features = { "AUTO FARM", "BOSS", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 0,
+	},
+	{
+		Name = "BLADE SPIN",
+		Description = "Spinner",
+		Details = "Blade spin farm",
+		Features = { "AUTO FARM", "SPIN", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 0,
+	},
+	{
+		Name = "Brainblast",
+		Description = "Brainrot",
+		Details = "Brainblast farm",
+		Features = { "AUTO FARM", "AUTO HATCH", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 0,
+	},
+	{
+		Name = "Broken Blade",
+		Description = "Blade RPG",
+		Details = "Broken blade farm",
+		Features = { "AUTO FARM", "COMBAT", "BOSS" },
+		Status = "SOON",
+		PlaceId = 0,
+	},
+	{
+		Name = "8 Ball Pool 1v1",
+		Description = "Sports",
+		Details = "8 ball pool tools",
+		Features = { "AIM", "TOOLS", "AUTO FARM" },
+		Status = "SOON",
+		PlaceId = 0,
+	},
+	{
+		Name = "Guess My Logo",
+		Description = "Quiz",
+		Details = "Guess my logo solver",
+		Features = { "AUTO SOLVE", "FARM" },
+		Status = "SOON",
+		PlaceId = 0,
+	},
+	{
+		Name = "Guess My Football Country",
+		Description = "Quiz",
+		Details = "Guess football country solver",
+		Features = { "AUTO SOLVE", "FARM" },
+		Status = "SOON",
+		PlaceId = 0,
+	},
+	{
+		Name = "Kaitun",
+		Description = "Anime RPG",
+		Details = "Kaitun farm",
+		Features = { "AUTO FARM", "BOSS", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 0,
+	},
+	{
+		Name = "All Star Tower Defense",
+		Description = "Tower defense",
+		Details = "All star TD farm",
+		Features = { "AUTO FARM", "AUTO PLACE", "UPGRADE" },
+		Status = "SOON",
+		PlaceId = 0,
+	},
+	{
+		Name = "Kick a Lucky Block",
+		Description = "Lucky block",
+		Details = "Kick lucky block farm",
+		Features = { "AUTO FARM", "LUCKY BLOCK", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 0,
+	},
+	{
+		Name = "Jump to Steal Slimes",
+		Description = "Fun",
+		Details = "Jump steal slimes farm",
+		Features = { "AUTO FARM", "JUMP", "COLLECT" },
+		Status = "SOON",
+		PlaceId = 0,
+	},
+	{
+		Name = "Jump to Steal Soccer Players",
+		Description = "Fun",
+		Details = "Jump steal soccer farm",
+		Features = { "AUTO FARM", "JUMP", "COLLECT" },
+		Status = "SOON",
+		PlaceId = 0,
+	},
+	{
+		Name = "Iron Soul",
+		Description = "RPG",
+		Details = "Iron soul farm",
+		Features = { "AUTO FARM", "BOSS", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 0,
+	},
+	{
+		Name = "Rebirth Champions",
+		Description = "Clicker",
+		Details = "Rebirth champions farm",
+		Features = { "AUTO CLICK", "REBIRTH", "UPGRADES" },
+		Status = "SOON",
+		PlaceId = 0,
+	},
+	{
+		Name = "Slime RNG",
+		Description = "RNG",
+		Details = "Slime RNG auto roll",
+		Features = { "AUTO ROLL", "AUTO FARM" },
+		Status = "SOON",
+		PlaceId = 0,
 	},
 }
 
@@ -4009,10 +5563,31 @@ local function startMain(key, app)
 	return true
 end
 
-local App = PeterHub:CreateStyledWindow({
-	Name = "Peter Hub v2",
+-- Tries a previously-cached verified key so the user does not have to re-enter
+-- it on every launch. Returns the key on success, nil otherwise.
+local function tryAutoVerifyKey()
+	local routeKey = CURRENT_ROUTE and CURRENT_ROUTE.Key
+	if not routeKey then
+		return nil
+	end
+	local saved = loadSavedVerifiedKey(routeKey)
+	if type(saved) ~= "string" or saved == "" then
+		return nil
+	end
+	local ok, valid = pcall(verifyJunkieKey, saved, routeKey)
+	if ok and valid then
+		return saved
+	end
+	-- verifyJunkieKey already drops the cache when it rejects a key, but the
+	-- pcall above may swallow that for non-string returns — clear defensively.
+	clearSavedVerifiedKey(routeKey)
+	return nil
+end
+
+local App = MammozHub:CreateStyledWindow({
+	Name = "Mammoz Hub",
 	Subtitle = "Game Control Center",
-	StudioName = "Peter Hub Studios",
+	StudioName = "Mammoz Studios",
 	DefaultPage = "GetKey",
 	AutoSlideDelay = 4,
 	LowEffects = false,
@@ -4030,12 +5605,13 @@ local App = PeterHub:CreateStyledWindow({
 		"Exclusive auto farm",
 	},
 	VerifyKey = function(key)
-		return verifyJunkieKey(key)
+		return verifyJunkieKey(key, CURRENT_ROUTE and CURRENT_ROUTE.Key)
 	end,
 	OnKeyVerified = function(key, app)
 		app:SetStatus("Access granted. Loading " .. tostring(CURRENT_ROUTE.Name) .. "...", "success")
 		startMain(key, app)
 	end,
+	AutoVerifyKey = tryAutoVerifyKey,
 })
 
 return App
