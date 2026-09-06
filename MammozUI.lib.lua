@@ -2358,7 +2358,7 @@ function Page:CreateCard(title, order)
 		Size = UDim2.new(1, 0, 0, 24),
 		LayoutOrder = -1,
 	}, frame)
-	make("TextLabel", {
+	local cardTitle = make("TextLabel", {
 		Name = "CardTitle",
 		BackgroundTransparency = 1,
 		Size = UDim2.new(1, 0, 1, 0),
@@ -2405,7 +2405,7 @@ end
 
 function Card:AddLabel(text, note)
 	local T = self.window.theme
-	return make("TextLabel", {
+	local label = make("TextLabel", {
 		BackgroundTransparency = 1,
 		Size = UDim2.new(1, 0, 0, 14),
 		AutomaticSize = Enum.AutomaticSize.Y,
@@ -2420,6 +2420,7 @@ function Card:AddLabel(text, note)
 		TextWrapped = true,
 		LayoutOrder = self:nextOrder(),
 	}, self.frame)
+	return label
 end
 
 function Card:AddButton(text, callback)
