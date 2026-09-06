@@ -113,14 +113,20 @@ local MammozUI = loadMammozBackend()
 local UI = {}
 
 UI.theme = {
-	accent = Color3.fromRGB(45, 156, 255),
-	band = Color3.fromRGB(83, 188, 255),
-	good = Color3.fromRGB(59, 226, 170),
-	warn = Color3.fromRGB(111, 190, 255),
-	bad = Color3.fromRGB(255, 110, 120),
-	text = Color3.fromRGB(232, 246, 255),
-	dim = Color3.fromRGB(83, 112, 142),
+	accent = Color3.fromRGB(39, 145, 255),
+	band = Color3.fromRGB(83, 193, 255),
+	good = Color3.fromRGB(61, 224, 167),
+	warn = Color3.fromRGB(247, 191, 72),
+	bad = Color3.fromRGB(255, 104, 119),
+	text = Color3.fromRGB(235, 247, 255),
+	dim = Color3.fromRGB(112, 150, 183),
 }
+
+-- All converted scripts share this visual system. A script may opt out only
+-- explicitly with AllowCustomTheme, which keeps the default experience aligned
+-- with the main Mammoz dashboard instead of each source framework's skin.
+UI.LockDashboardTheme = true
+UI.DashboardStyle = "main-dashboard"
 
 UI.icon = {
 	home = "home",
@@ -527,6 +533,16 @@ function UI.Window(first, second)
 	local config = first == UI and (second or {}) or (first or {})
 	config = config or {}
 	UI.Unloaded = false
+	local useCustomTheme = UI.LockDashboardTheme == false or config.AllowCustomTheme == true
+	if not useCustomTheme then
+		UI.theme.accent = Color3.fromRGB(39, 145, 255)
+		UI.theme.band = Color3.fromRGB(83, 193, 255)
+		UI.theme.good = Color3.fromRGB(61, 224, 167)
+		UI.theme.warn = Color3.fromRGB(247, 191, 72)
+		UI.theme.bad = Color3.fromRGB(255, 104, 119)
+		UI.theme.text = Color3.fromRGB(235, 247, 255)
+		UI.theme.dim = Color3.fromRGB(112, 150, 183)
+	end
 	local title = config.Title or config.title or config.Name or config.name or "Mammoz"
 	local accentTitle = config.AccentTitle or config.accentTitle
 	if accentTitle and accentTitle ~= "" then
@@ -545,8 +561,8 @@ function UI.Window(first, second)
 		Title = title,
 		Name = config.Name or config.name or "MammozHubUI",
 		BadgeText = config.badge or config.BadgeText or config.Subtitle or config.subtitle or config.Author or title,
-		Accent = UI.theme.accent,
-		Theme = type(config.MammozTheme) == "table" and config.MammozTheme or nil,
+		Accent = useCustomTheme and (config.Accent or UI.theme.accent) or UI.theme.accent,
+		Theme = useCustomTheme and type(config.MammozTheme) == "table" and config.MammozTheme or nil,
 		Size = requestedSize,
 		OnClose = config.OnClose,
 	})
@@ -605,6 +621,12 @@ end
 
 function Window:SetStatus(text)
 	self.status = tostring(text or "")
+	if self.raw and type(self.raw.setHeaderStatus) == "function" then
+		local statusKind = string.find(string.lower(self.status), "error", 1, true) and "error"
+			or string.find(string.lower(self.status), "warn", 1, true) and "warn"
+			or nil
+		self.raw:setHeaderStatus(self.status ~= "" and self.status or "SYSTEM ONLINE", statusKind)
+	end
 	if self.homeStatus then
 		self.homeStatus.Text = self.status
 	end
@@ -2015,6 +2037,153 @@ UI.CreateWindow = function(first, second)
 	return UI.Window(config)
 end
 
+-- Simple, framework-neutral API for new scripts. It intentionally wraps the
+-- compatibility methods above, so a hub built with this API still shares flags,
+-- callbacks, notifications, mobile handling, and the Dashboard visual shell.
+local SimpleHub = {}
+SimpleHub.__index = function(self, key)
+	local method = SimpleHub[key]
+	if method ~= nil then
+		return method
+	end
+	local window = rawget(self, "window")
+	local member = window and window[key]
+	if type(member) == "function" then
+		return function(_, ...)
+			return member(window, ...)
+		end
+	end
+	return member
+end
+
+local function simpleTabKey(value)
+	return string.lower(tostring(value or "main"))
+end
+
+local function resolveSimpleTarget(hub, target)
+	if type(target) == "string" then
+		target = hub.tabs[simpleTabKey(target)] or hub:Tab(target)
+	end
+	if type(target) ~= "table" then
+		error("MammozUI Hub needs a Tab or Section target.", 3)
+	end
+	return target
+end
+
+function SimpleHub:Tab(config, icon)
+	local title = type(config) == "table" and (config.Title or config.Name or config.name) or config
+	title = tostring(title or "Main")
+	local key = simpleTabKey(title)
+	if self.tabs[key] then
+		return self.tabs[key]
+	end
+	local page = self.window:CreateTab({
+		Title = title,
+		Icon = type(config) == "table" and (config.Icon or config.icon) or icon,
+	})
+	self.tabs[key] = page
+	return page
+end
+
+-- Existing converted scripts often use Window:AddTab/CreateTab. Keeping these
+-- aliases lets them move to CreateHub without changing game callbacks.
+SimpleHub.AddTab = SimpleHub.Tab
+SimpleHub.CreateTab = SimpleHub.Tab
+
+function SimpleHub:Section(tab, title)
+	tab = resolveSimpleTarget(self, tab)
+	return tab:CreateSection(title or "CONTROLS")
+end
+
+function SimpleHub:Label(target, text, note)
+	target = resolveSimpleTarget(self, target)
+	return target:CreateLabel(type(text) == "table" and text or { Text = text, Note = note })
+end
+
+function SimpleHub:Button(target, name, callback)
+	target = resolveSimpleTarget(self, target)
+	local config = type(name) == "table" and name or { Name = name, Callback = callback }
+	return target:CreateButton(config)
+end
+
+function SimpleHub:Toggle(target, name, default, callback)
+	target = resolveSimpleTarget(self, target)
+	local config = type(name) == "table" and name or {
+		Name = name,
+		CurrentValue = default == true,
+		Callback = callback,
+	}
+	return target:CreateToggle(config)
+end
+
+function SimpleHub:Slider(target, name, minimum, maximum, default, callback)
+	target = resolveSimpleTarget(self, target)
+	local config = type(name) == "table" and name or {
+		Name = name,
+		Min = minimum,
+		Max = maximum,
+		CurrentValue = default,
+		Callback = callback,
+	}
+	return target:CreateSlider(config)
+end
+
+function SimpleHub:Dropdown(target, name, values, default, callback)
+	target = resolveSimpleTarget(self, target)
+	local config = type(name) == "table" and name or {
+		Name = name,
+		Options = values,
+		CurrentValue = default,
+		Callback = callback,
+	}
+	return target:CreateDropdown(config)
+end
+
+function SimpleHub:Input(target, name, placeholder, callback)
+	target = resolveSimpleTarget(self, target)
+	local config = type(name) == "table" and name or {
+		Name = name,
+		Placeholder = placeholder,
+		Callback = callback,
+	}
+	return target:CreateInput(config)
+end
+
+function SimpleHub:Notify(title, content, kind)
+	if type(title) == "table" then
+		return self.window:Notify(title, content, kind)
+	end
+	return self.window:Notify({ Title = title, Content = content, Type = kind })
+end
+
+function SimpleHub:SetStatus(text)
+	return self.window:SetStatus(text)
+end
+
+function SimpleHub:SetFlag(id, value)
+	return UI:SetFlag(id, value)
+end
+
+function SimpleHub:Destroy()
+	return self.window:Destroy()
+end
+
+UI.CreateHub = function(first, second)
+	local config = first == UI and (second or {}) or (first or {})
+	config = type(config) == "table" and config or {}
+	local hub = setmetatable({
+		window = UI:CreateWindow(config),
+		Window = nil,
+		tabs = {},
+		Tabs = nil,
+	}, SimpleHub)
+	hub.Window = hub.window
+	hub.Tabs = hub.tabs
+	return hub
+end
+UI.Hub = UI.CreateHub
+UI.CreateApp = UI.CreateHub
+
 -- VectorHub's Evil factory and similar libraries return a tabbed window.
 -- Keeping this alias in the shared compatibility layer lets converted scripts
 -- retain their original UI calls without bundling a second UI implementation.
@@ -2155,13 +2324,17 @@ local function applyLegacyStyle(object, root)
 	elseif object:IsA("TextButton") then
 		object.TextColor3 = UI.theme.text
 		object.Font = Enum.Font.GothamBold
-		if object.BackgroundTransparency < 0.95 then
-			object.BackgroundColor3 = Color3.fromRGB(10, 31, 57)
-		end
-		if not object:FindFirstChildOfClass("UICorner") then
-			local radius = Instance.new("UICorner")
-			radius.CornerRadius = UDim.new(0, 7)
-			radius.Parent = object
+		-- Do not stomp the colors/corners that native Mammoz controls set;
+		-- legacy styling is only for controls imported from other sources.
+		if not object:GetAttribute("MammozUI") then
+			if object.BackgroundTransparency < 0.95 then
+				object.BackgroundColor3 = Color3.fromRGB(10, 34, 62)
+			end
+			if not object:FindFirstChildOfClass("UICorner") then
+				local radius = Instance.new("UICorner")
+				radius.CornerRadius = UDim.new(0, 7)
+				radius.Parent = object
+			end
 		end
 	elseif object:IsA("TextBox") then
 		object.BackgroundColor3 = Color3.fromRGB(3, 13, 29)
@@ -2173,7 +2346,7 @@ local function applyLegacyStyle(object, root)
 		object.ScrollBarImageColor3 = UI.theme.accent
 	elseif object:IsA("Frame") or object:IsA("CanvasGroup") then
 		if object.BackgroundTransparency < 0.95 then
-			object.BackgroundColor3 = object.Parent == root and Color3.fromRGB(3, 10, 22) or Color3.fromRGB(7, 22, 42)
+			object.BackgroundColor3 = object.Parent == root and Color3.fromRGB(4, 12, 26) or Color3.fromRGB(11, 31, 56)
 		end
 	end
 end
