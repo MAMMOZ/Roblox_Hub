@@ -736,6 +736,31 @@ end
 -- place id silently fail to load. We resolve universe ids once at startup
 -- via the multiget place-details endpoint and cache them here.
 local universeCache = {}
+-- Cached real thumbnail URLs (from thumbnails.roblox.com -> tr.rbxcdn.com).
+-- Keyed by place id: { icon = "...", preview = "..." }. The rbxthumb:// scheme
+-- fails to load on some executors and for some games, so we prefer the direct
+-- CDN URL when we can resolve one.
+local thumbnailCache = {}
+local function httpGetJson(url)
+	local ok, body = pcall(function()
+		return game:HttpGet(url, true)
+	end)
+	if not ok or type(body) ~= "string" or body == "" then
+		return nil
+	end
+	local HttpService
+	pcall(function() HttpService = game:GetService("HttpService") end)
+	if type(HttpService) ~= "table" or type(HttpService.JSONDecode) ~= "function" then
+		return nil
+	end
+	local decOk, data = pcall(function()
+		return HttpService:JSONDecode(body)
+	end)
+	if not decOk or type(data) ~= "table" then
+		return nil
+	end
+	return data
+end
 local function resolveUniverseIdsForGames(games)
 	local placeIds = {}
 	local seen = {}
@@ -749,40 +774,86 @@ local function resolveUniverseIdsForGames(games)
 	if #placeIds == 0 then
 		return
 	end
-	local HttpService
-	pcall(function() HttpService = game:GetService("HttpService") end)
-	if type(HttpService) ~= "table" or type(HttpService.JSONDecode) ~= "function" then
-		return
-	end
 	for i = 1, #placeIds, 100 do
 		local chunk = {}
 		for j = i, math.min(i + 99, #placeIds) do
 			chunk[#chunk + 1] = tostring(placeIds[j])
 		end
 		local url = "https://games.roblox.com/v1/games/multiget-place-details?placeIds=" .. table.concat(chunk, ",")
-		local ok, body = pcall(function()
-			return game:HttpGet(url, true)
-		end)
-		if not ok or type(body) ~= "string" or body == "" then
+		local data = httpGetJson(url)
+		if not data then
 			-- Try the public mirror if the direct endpoint is blocked.
-			local url2 = "https://games.roproxy.com/v1/games/multiget-place-details?placeIds=" .. table.concat(chunk, ",")
-			ok, body = pcall(function()
-				return game:HttpGet(url2, true)
-			end)
+			data = httpGetJson("https://games.roproxy.com/v1/games/multiget-place-details?placeIds=" .. table.concat(chunk, ","))
 		end
-		if ok and type(body) == "string" and body ~= "" then
-			local decOk, data = pcall(function()
-				return HttpService:JSONDecode(body)
-			end)
-			if decOk and type(data) == "table" then
-				for _, entry in ipairs(data) do
-					if type(entry) == "table" and entry.universeId then
-						universeCache[tonumber(entry.placeId)] = tonumber(entry.universeId)
+		if type(data) == "table" then
+			for _, entry in ipairs(data) do
+				if type(entry) == "table" and entry.universeId then
+					universeCache[tonumber(entry.placeId)] = tonumber(entry.universeId)
+				end
+			end
+		end
+	end
+end
+
+-- Pull the first real thumbnail/icon URL for every resolved universe and cache
+-- it by place id. Best-effort: failures fall back to rbxthumb:// later.
+local function resolveThumbnailsForGames(games)
+	local placeToUniverse = {}
+	local universeSet = {}
+	for _, gameInfo in ipairs(games or {}) do
+		local pid = tonumber(getPrimaryPlaceId(gameInfo))
+		if pid and pid > 0 and universeCache[pid] then
+			placeToUniverse[pid] = universeCache[pid]
+			universeSet[universeCache[pid]] = true
+		end
+	end
+	local uidList = {}
+	for uid in pairs(universeSet) do
+		uidList[#uidList + 1] = tostring(uid)
+	end
+	if #uidList == 0 then
+		return
+	end
+	-- Build a reverse lookup universe -> place so we can store by place id.
+	local universeToPlaces = {}
+	for pid, uid in pairs(placeToUniverse) do
+		universeToPlaces[uid] = universeToPlaces[uid] or {}
+		table.insert(universeToPlaces[uid], pid)
+	end
+	local function storeByUniverse(universeId, kind, imageUrl)
+		local places = universeToPlaces[universeId]
+		if not places then
+			return
+		end
+		for _, pid in ipairs(places) do
+			thumbnailCache[pid] = thumbnailCache[pid] or {}
+			thumbnailCache[pid][kind] = imageUrl
+		end
+	end
+	local function fetchChunk(kind, endpoint, sizeParam)
+		for i = 1, #uidList, 100 do
+			local chunk = {}
+			for j = i, math.min(i + 99, #uidList) do
+				chunk[#chunk + 1] = uidList[j]
+			end
+			local param = kind == "icon" and ("universeIds=" .. table.concat(chunk, ",") .. "&size=" .. sizeParam .. "&format=Png&isCircular=false")
+				or ("universeIds=" .. table.concat(chunk, ",") .. "&size=" .. sizeParam .. "&format=Webp&isCircular=false")
+			local url = "https://thumbnails.roblox.com/v1/games/" .. endpoint .. "?" .. param
+			local data = httpGetJson(url)
+			if not data then
+				data = httpGetJson("https://thumbnails.roproxy.com/v1/games/" .. endpoint .. "?" .. param)
+			end
+			if type(data) == "table" and type(data.data) == "table" then
+				for _, entry in ipairs(data.data) do
+					if type(entry) == "table" and entry.imageUrl and entry.targetId then
+						storeByUniverse(tonumber(entry.targetId), kind, entry.imageUrl)
 					end
 				end
 			end
 		end
 	end
+	fetchChunk("icon", "icons", "150x150")
+	fetchChunk("preview", "thumbnails", "768x432")
 end
 
 local function thumbIdFor(gameInfo)
@@ -806,6 +877,13 @@ local function gameImage(gameInfo)
 		return "rbxassetid://" .. tostring(gameInfo.ImageId)
 	end
 
+	-- Prefer a real CDN URL resolved at startup; rbxthumb:// fails on some
+	-- executors and for some games.
+	local pid = tonumber(getPrimaryPlaceId(gameInfo))
+	if pid and thumbnailCache[pid] and thumbnailCache[pid].icon then
+		return thumbnailCache[pid].icon
+	end
+
 	local id = thumbIdFor(gameInfo)
 	if id then
 		return "rbxthumb://type=GameIcon&id=" .. tostring(id) .. "&w=150&h=150"
@@ -820,6 +898,11 @@ local function gamePreviewImage(gameInfo)
 	end
 	if gameInfo.BannerImage then
 		return gameInfo.BannerImage
+	end
+
+	local pid = tonumber(getPrimaryPlaceId(gameInfo))
+	if pid and thumbnailCache[pid] and thumbnailCache[pid].preview then
+		return thumbnailCache[pid].preview
 	end
 
 	local id = thumbIdFor(gameInfo)
@@ -4690,7 +4773,6 @@ local GAME_ROUTES = {
 		PlaceIds = { 0 },
 		Url = "https://api.jnkie.com/api/v1/luascripts/public/f998b55745da2f20710a11b0634872161ade8d8fa1a886e0b95e603d25964c46/download",
 	},
-}
 	{
 		Key = "sell_ores",
 		Name = "Sell Ores",
@@ -4715,6 +4797,7 @@ local GAME_ROUTES = {
 		PlaceIds = { 0 },
 		Url = "https://api.jnkie.com/api/v1/luascripts/public/cf49a04fbe66402f7f432314736f2e0c9f0e5cb8c6ae9e663fcb84404b1af33f/download",
 	},
+}
 
 local function routeContainsPlaceId(route, placeId)
 	for _, id in ipairs(route.PlaceIds or {}) do
@@ -5715,10 +5798,13 @@ local function tryAutoVerifyKey()
 	return nil
 end
 
--- Resolve universe ids for the preview games so thumbnails render. Wrapped so
--- a network/API failure never blocks the UI from opening.
+-- Resolve universe ids + real thumbnail URLs for the preview games so images
+-- render. Wrapped so a network/API failure never blocks the UI from opening.
+-- (Actual image files are downloaded by the separate download-thumbs.js
+-- Node.js tool, not at runtime here.)
 pcall(function()
 	resolveUniverseIdsForGames(LoaderPreviewGames)
+	resolveThumbnailsForGames(LoaderPreviewGames)
 end)
 
 local App = MammozHub:CreateStyledWindow({
