@@ -731,6 +731,70 @@ local function getPrimaryPlaceId(gameInfo)
 	return gameInfo.Id or gameInfo.id
 end
 
+-- rbxthumb://type=GameIcon / GameThumbnail need the *universe* id, not the
+-- place id. Many games have place != universe, so thumbnails built from the
+-- place id silently fail to load. We resolve universe ids once at startup
+-- via the multiget place-details endpoint and cache them here.
+local universeCache = {}
+local function resolveUniverseIdsForGames(games)
+	local placeIds = {}
+	local seen = {}
+	for _, gameInfo in ipairs(games or {}) do
+		local pid = tonumber(getPrimaryPlaceId(gameInfo))
+		if pid and pid > 0 and not seen[pid] then
+			seen[pid] = true
+			placeIds[#placeIds + 1] = pid
+		end
+	end
+	if #placeIds == 0 then
+		return
+	end
+	local HttpService
+	pcall(function() HttpService = game:GetService("HttpService") end)
+	if type(HttpService) ~= "table" or type(HttpService.JSONDecode) ~= "function" then
+		return
+	end
+	for i = 1, #placeIds, 100 do
+		local chunk = {}
+		for j = i, math.min(i + 99, #placeIds) do
+			chunk[#chunk + 1] = tostring(placeIds[j])
+		end
+		local url = "https://games.roblox.com/v1/games/multiget-place-details?placeIds=" .. table.concat(chunk, ",")
+		local ok, body = pcall(function()
+			return game:HttpGet(url, true)
+		end)
+		if not ok or type(body) ~= "string" or body == "" then
+			-- Try the public mirror if the direct endpoint is blocked.
+			local url2 = "https://games.roproxy.com/v1/games/multiget-place-details?placeIds=" .. table.concat(chunk, ",")
+			ok, body = pcall(function()
+				return game:HttpGet(url2, true)
+			end)
+		end
+		if ok and type(body) == "string" and body ~= "" then
+			local decOk, data = pcall(function()
+				return HttpService:JSONDecode(body)
+			end)
+			if decOk and type(data) == "table" then
+				for _, entry in ipairs(data) do
+					if type(entry) == "table" and entry.universeId then
+						universeCache[tonumber(entry.placeId)] = tonumber(entry.universeId)
+					end
+				end
+			end
+		end
+	end
+end
+
+local function thumbIdFor(gameInfo)
+	local placeId = tonumber(getPrimaryPlaceId(gameInfo))
+	if not placeId or placeId <= 0 then
+		return nil
+	end
+	-- Prefer the resolved universe id; fall back to the place id so older
+	-- games (where place == universe root) still render.
+	return universeCache[placeId] or placeId
+end
+
 local function gameImage(gameInfo)
 	if gameInfo.Image then
 		return gameInfo.Image
@@ -742,9 +806,9 @@ local function gameImage(gameInfo)
 		return "rbxassetid://" .. tostring(gameInfo.ImageId)
 	end
 
-	local placeId = getPrimaryPlaceId(gameInfo)
-	if placeId and tonumber(placeId) and tonumber(placeId) > 0 then
-		return "rbxthumb://type=GameIcon&id=" .. tostring(placeId) .. "&w=150&h=150"
+	local id = thumbIdFor(gameInfo)
+	if id then
+		return "rbxthumb://type=GameIcon&id=" .. tostring(id) .. "&w=150&h=150"
 	end
 
 	return nil
@@ -758,9 +822,9 @@ local function gamePreviewImage(gameInfo)
 		return gameInfo.BannerImage
 	end
 
-	local placeId = getPrimaryPlaceId(gameInfo)
-	if placeId and tonumber(placeId) and tonumber(placeId) > 0 then
-		return "rbxthumb://type=GameThumbnail&id=" .. tostring(placeId) .. "&w=768&h=432"
+	local id = thumbIdFor(gameInfo)
+	if id then
+		return "rbxthumb://type=GameThumbnail&id=" .. tostring(id) .. "&w=768&h=432"
 	end
 
 	return gameImage(gameInfo)
@@ -4030,7 +4094,7 @@ local GAME_ROUTES = {
 		Key = "aotr",
 		Name = "Attack On Titan Rev.",
 		PlaceIds = { 13379208636, 14916516914 },
-		Url = "",
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/253aebb2ea396addfc45b9a58f33678e753176d2d07bf72c4be8d11f6bcca3ea/download",
 	},
 	{
 		Key = "anime_card_farm",
@@ -4090,7 +4154,7 @@ local GAME_ROUTES = {
 		Key = "mine_a_mountain",
 		Name = "Mine a Mountain",
 		PlaceIds = { 125927821145949 },
-		Url = "",
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/1edbca0dee54fc259c9c8e8316de07d01f54b63b0b86d72f042dd41c60a58478/download",
 	},
 	{
 		Key = "mm2",
@@ -4108,7 +4172,7 @@ local GAME_ROUTES = {
 		Key = "cleanleaves",
 		Name = "Clean all the leaves",
 		PlaceIds = { 92637789841354, 100068273119174 },
-		Url = "",
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/7a854954183f1602c43ed8acf0d37d8fef0c114c712e4f4bb4752ebb910cb94a/download",
 	},
 	{
 		Key = "aurabrainrots",
@@ -4120,7 +4184,7 @@ local GAME_ROUTES = {
 		Key = "beflash",
 		Name = "Be Flash For Brainrots",
 		PlaceIds = { 136066387156306 },
-		Url = "",
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/7a47c2f4944dbd493ba4009afab19af7881c1ceced0b5c1aa1f094d5df46e869/download",
 	},
 	{
 		Key = "drainwater",
@@ -4132,7 +4196,7 @@ local GAME_ROUTES = {
 		Key = "demon_blade",
 		Name = "Demon Blade",
 		PlaceIds = { 15014439457, 98470671607734 },
-		Url = "",
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/3b1e9491ca51e4f620f68091ec5646fff35f0ebd79d1df64b8678642eedad5a5/download",
 	},
 	{
 		Key = "drillfarm",
@@ -4144,25 +4208,25 @@ local GAME_ROUTES = {
 		Key = "digclean",
 		Name = "Dig & Clean",
 		PlaceIds = { 83038462357724 },
-		Url = "",
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/3e1a303cf1403a689fa9c316dc05f0fb08cf0cf3f2b860856267bc1d59b2ba60/download",
 	},
 	{
 		Key = "jetpackbrainrots",
 		Name = "+1 Jetpack for Brainrots",
 		PlaceIds = { 80234914611737 },
-		Url = "",
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/48efe3f42ccea6dafa3073b84c7c2a781c2a9ddff1a7170b3e92821a80d3ac18/download",
 	},
 	{
 		Key = "haze_piece",
 		Name = "Haze Piece",
 		PlaceIds = { 6918802270, 14979402479, 99664616626491 },
-		Url = "",
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/c211661194d71b20404a0086546bb622605105948f287ac8ed05bc677f5fbc9d/download",
 	},
 	{
 		Key = "king_legacy",
 		Name = "King Legacy",
 		PlaceIds = { 4520749081, 6381829480, 15759515082 },
-		Url = "",
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/e4f3b980212219f26173f0892af2cc324f6f758008455dd578db39fdd31e58da/download",
 	},
 	{
 		Key = "sailor_piece",
@@ -4198,13 +4262,13 @@ local GAME_ROUTES = {
 		Key = "poortorich",
 		Name = "+1 Poor To Rich",
 		PlaceIds = { 96003649748017 },
-		Url = "",
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/6a772895a410d4e9126734ac8b609a23cd3d06b6265972e2f9846ec69865493e/download",
 	},
 	{
 		Key = "luckyfish",
 		Name = "Pull a Lucky Fish",
 		PlaceIds = { 112781315318195 },
-		Url = "",
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/589242dff68f22ccb85b3051c2561b283544339a1b1b0847334595065fd1be9d/download",
 	},
 	{
 		Key = "powerclick",
@@ -4216,7 +4280,7 @@ local GAME_ROUTES = {
 		Key = "powerblast",
 		Name = "Power Blast Lucky Blocks",
 		PlaceIds = { 119822977170203 },
-		Url = "",
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/67506f3fe78dfb971c372667f42db89bd5251368c1aa59a55437c23283dd6c90/download",
 	},
 	{
 		Key = "pickaxesim",
@@ -4228,7 +4292,7 @@ local GAME_ROUTES = {
 		Key = "selllemons",
 		Name = "Sell Lemons",
 		PlaceIds = { 79268393072444 },
-		Url = "",
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/ca93543f288196adebbb4acb7c25325d39659089623c32f2e4a4603fa7b871bb/download",
 	},
 	{
 		Key = "skillpoints",
@@ -4270,7 +4334,7 @@ local GAME_ROUTES = {
 		Key = "blox_fruits",
 		Name = "Blox Fruits",
 		PlaceIds = { 2753915549, 4442272183, 7449423635 },
-		Url = "",
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/f561f30cbab2242f2cac72a8509b3f9b6ef35fe0c91c2a83bc85c6cc7ba9ac28/download",
 	},
 	{
 		Key = "anime_apocalypse",
@@ -4282,7 +4346,7 @@ local GAME_ROUTES = {
 		Key = "brookhaven",
 		Name = "Brookhaven RP",
 		PlaceIds = { 7247162321 },
-		Url = "",
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/77ed55725358b22ae8b8b95355f302f567b703a1f8d529d531da42722e4fc9f6/download",
 	},
 	{
 		Key = "adopt_me",
@@ -4294,7 +4358,7 @@ local GAME_ROUTES = {
 		Key = "arsenal",
 		Name = "Arsenal",
 		PlaceIds = { 286090429 },
-		Url = "",
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/9e01b589d4082a6952502b75538b08195db7a77262ea01510a996d4b16082fba/download",
 	},
 	{
 		Key = "blade_ball",
@@ -4312,7 +4376,7 @@ local GAME_ROUTES = {
 		Key = "pet_sim_99",
 		Name = "Pet Simulator 99",
 		PlaceIds = { 8737602446 },
-		Url = "",
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/212a0f031d9c0ef875d92ffe999588ce8bda7b9b42f1ddd35921b3cfd8068d67/download",
 	},
 	{
 		Key = "bee_swarm",
@@ -4384,7 +4448,7 @@ local GAME_ROUTES = {
 		Key = "counter_blox",
 		Name = "Counter Blox",
 		PlaceIds = { 3003369924 },
-		Url = "",
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/542fde9c70c8cb4146acd2417d913bc3f95537dc61ea12a7d9673ea6f8209510/download",
 	},
 	{
 		Key = "anime_vanguards",
@@ -4486,19 +4550,19 @@ local GAME_ROUTES = {
 		Key = "forsaken",
 		Name = "Forsaken",
 		PlaceIds = { 13770989446 },
-		Url = "",
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/9bb1e096c86002e6a0142bdc9135911338438573aaee1392759ad7ddb0770221/download",
 	},
 	{
 		Key = "zombie_uprising",
 		Name = "Zombie Uprising",
 		PlaceIds = { 5159239355 },
-		Url = "",
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/3917586b98aad373b0bd99ae077bf1f661d3af75eae56577be312d545547ee87/download",
 	},
 	{
 		Key = "world_fighters",
 		Name = "World Fighters",
 		PlaceIds = { 0 },
-		Url = "",
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/222f8d6f9dbcdd471ecae3e7c4d75298e08896978d9ac0a0eb339706b52e0fca/download",
 	},
 	{
 		Key = "weak_legacy_2",
@@ -4516,13 +4580,13 @@ local GAME_ROUTES = {
 		Key = "anime_warriors",
 		Name = "Anime Warriors",
 		PlaceIds = { 0 },
-		Url = "",
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/4cdd2112156453550efaca9703c13f6d08ca16d70ce667233e141a89336b5ff1/download",
 	},
 	{
 		Key = "anime_expedition",
 		Name = "Anime Expedition",
 		PlaceIds = { 0 },
-		Url = "",
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/2586c8e644360d8801a514aa3f7278658e5a752ebd1ea13d4eaa9ee4694ab1e1/download",
 	},
 	{
 		Key = "anime_final_quest",
@@ -4588,45 +4652,69 @@ local GAME_ROUTES = {
 		Key = "allstar",
 		Name = "All Star Tower Defense",
 		PlaceIds = { 0 },
-		Url = "",
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/b8c1e042e0a36b9dc69f77ea799638e492f5a5b2cfee22f62d1558afb71bee1c/download",
 	},
 	{
 		Key = "lucky_block",
 		Name = "Kick a Lucky Block",
 		PlaceIds = { 0 },
-		Url = "",
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/019c4acfd2b7ab99d76ed2210abd89126669065fbfb6321e68125ecdeda85eac/download",
 	},
 	{
 		Key = "jump_slimes",
 		Name = "Jump to Steal Slimes",
 		PlaceIds = { 0 },
-		Url = "",
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/0d802bf5d2b5c44fdaea4d1ad533fc94b8c1fd7f8fbdd1dd5f8c461e71eb6fd9/download",
 	},
 	{
 		Key = "jump_soccer",
 		Name = "Jump to Steal Soccer Players",
 		PlaceIds = { 0 },
-		Url = "",
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/ae45688dd8b242eccaa376075b58a5ba0a8865857d9ae362e3b218847ce99c7a/download",
 	},
 	{
 		Key = "iron_soul",
 		Name = "Iron Soul",
 		PlaceIds = { 0 },
-		Url = "",
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/ee08bbb578eb0ba496d1f6a3ab73285d058409fc2fc9275174d78a51703cc7d9/download",
 	},
 	{
 		Key = "rebirth_champions",
 		Name = "Rebirth Champions",
 		PlaceIds = { 0 },
-		Url = "",
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/09de2ec0d7f1d294460153d72fcdc70c445877a45abb8b1465bf04a617c826df/download",
 	},
 	{
 		Key = "slime_rng",
 		Name = "Slime RNG",
 		PlaceIds = { 0 },
-		Url = "",
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/f998b55745da2f20710a11b0634872161ade8d8fa1a886e0b95e603d25964c46/download",
 	},
 }
+	{
+		Key = "sell_ores",
+		Name = "Sell Ores",
+		PlaceIds = { 0 },
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/76995ec1240d8c4cd819b07152766da456370dcdc09b8fe44741c52d7167ef24/download",
+	},
+	{
+		Key = "1_skinny_per_step",
+		Name = "+1 Skinny Per Step",
+		PlaceIds = { 0 },
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/879dfa508ef1dd1d4b51c7d2a06cb07b5d6734365117e4625a102cd79639adaf/download",
+	},
+	{
+		Key = "catch_a_brainrot",
+		Name = "Catch a brainrot",
+		PlaceIds = { 0 },
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/62e7b76e5807d54e00a8fb439f1b7ebc1520fd9d13458bb0f1589193824b33cc/download",
+	},
+	{
+		Key = "loot_evo",
+		Name = "Loot Evo",
+		PlaceIds = { 0 },
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/cf49a04fbe66402f7f432314736f2e0c9f0e5cb8c6ae9e663fcb84404b1af33f/download",
+	},
 
 local function routeContainsPlaceId(route, placeId)
 	for _, id in ipairs(route.PlaceIds or {}) do
@@ -4755,7 +4843,7 @@ local LoaderPreviewGames = {
 		Description = "AOTR - Titan Farm",
 		Details = "Auto Farm, Titan Kill, Auto Quest",
 		Features = { "AUTO FARM", "TITAN KILL", "AUTO QUEST", "MOBILE" },
-		Status = "SOON",
+		Status = "FREE",
 		PlaceId = 13379208636,
 	},
 	{
@@ -4835,7 +4923,7 @@ local LoaderPreviewGames = {
 		Description = "MaM - Auto Mine",
 		Details = "Unlock premium maps and VIP features",
 		Features = { "AUTO MINE", "ORE FARM", "VIP ROUTES", "SELL AUTO" },
-		Status = "VIP",
+		Status = "FREE",
 		PlaceId = 125927821145949,
 	},
 	{
@@ -4859,7 +4947,7 @@ local LoaderPreviewGames = {
 		Description = "Leaf cleanup",
 		Details = "Collect, deposit and farm leaves",
 		Features = { "AUTO COLLECT", "AUTO DEPOSIT", "FARM" },
-		Status = "SOON",
+		Status = "FREE",
 		PlaceId = 92637789841354,
 	},
 	{
@@ -4875,7 +4963,7 @@ local LoaderPreviewGames = {
 		Description = "Brainrot farm",
 		Details = "Flash speed farm",
 		Features = { "AUTO FARM", "SPEED", "UPGRADES" },
-		Status = "SOON",
+		Status = "FREE",
 		PlaceId = 136066387156306,
 	},
 	{
@@ -4891,7 +4979,7 @@ local LoaderPreviewGames = {
 		Description = "Blade RPG",
 		Details = "Auto farm and combat",
 		Features = { "AUTO FARM", "COMBAT", "BOSS" },
-		Status = "SOON",
+		Status = "FREE",
 		PlaceId = 15014439457,
 	},
 	{
@@ -4907,7 +4995,7 @@ local LoaderPreviewGames = {
 		Description = "Dig and clean",
 		Details = "Dig, clean and farm",
 		Features = { "AUTO DIG", "AUTO CLEAN", "FARM" },
-		Status = "SOON",
+		Status = "FREE",
 		PlaceId = 83038462357724,
 	},
 	{
@@ -4915,7 +5003,7 @@ local LoaderPreviewGames = {
 		Description = "Brainrot farm",
 		Details = "Jetpack farm loop",
 		Features = { "AUTO FARM", "AUTO HATCH", "UPGRADES" },
-		Status = "SOON",
+		Status = "FREE",
 		PlaceId = 80234914611737,
 	},
 	{
@@ -4923,7 +5011,7 @@ local LoaderPreviewGames = {
 		Description = "One Piece RPG",
 		Details = "Auto farm, quests and bosses",
 		Features = { "AUTO FARM", "AUTO QUEST", "BOSS FARM" },
-		Status = "SOON",
+		Status = "FREE",
 		PlaceId = 6918802270,
 	},
 	{
@@ -4931,7 +5019,7 @@ local LoaderPreviewGames = {
 		Description = "One Piece RPG",
 		Details = "Auto farm and raids",
 		Features = { "AUTO FARM", "RAID", "BOSS" },
-		Status = "SOON",
+		Status = "FREE",
 		PlaceId = 4520749081,
 	},
 	{
@@ -4979,7 +5067,7 @@ local LoaderPreviewGames = {
 		Description = "Clicker rich",
 		Details = "Poor to rich farm",
 		Features = { "AUTO CLICK", "AUTO FARM", "UPGRADES" },
-		Status = "SOON",
+		Status = "FREE",
 		PlaceId = 96003649748017,
 	},
 	{
@@ -4987,7 +5075,7 @@ local LoaderPreviewGames = {
 		Description = "Fishing sim",
 		Details = "Lucky fish farm",
 		Features = { "AUTO FISH", "SELL", "COLLECTION" },
-		Status = "SOON",
+		Status = "FREE",
 		PlaceId = 112781315318195,
 	},
 	{
@@ -5003,7 +5091,7 @@ local LoaderPreviewGames = {
 		Description = "Lucky blocks",
 		Details = "Power blast farm",
 		Features = { "AUTO FARM", "LUCKY BLOCK", "UPGRADES" },
-		Status = "SOON",
+		Status = "FREE",
 		PlaceId = 119822977170203,
 	},
 	{
@@ -5019,7 +5107,7 @@ local LoaderPreviewGames = {
 		Description = "Lemon farm",
 		Details = "Sell lemons farm",
 		Features = { "AUTO FARM", "SELL", "UPGRADES" },
-		Status = "SOON",
+		Status = "FREE",
 		PlaceId = 79268393072444,
 	},
 	{
@@ -5075,7 +5163,7 @@ local LoaderPreviewGames = {
 		Description = "One Piece RPG",
 		Details = "Auto farm, raids and fruits",
 		Features = { "AUTO FARM", "RAID", "FRUIT", "BOSS" },
-		Status = "SOON",
+		Status = "FREE",
 		PlaceId = 2753915549,
 	},
 	{
@@ -5091,7 +5179,7 @@ local LoaderPreviewGames = {
 		Description = "Roleplay",
 		Details = "Brookhaven roleplay tools",
 		Features = { "TELEPORT", "TOOLS", "PLAYER" },
-		Status = "SOON",
+		Status = "FREE",
 		PlaceId = 7247162321,
 	},
 	{
@@ -5107,7 +5195,7 @@ local LoaderPreviewGames = {
 		Description = "FPS",
 		Details = "Arsenal aimbot and farm",
 		Features = { "AIMBOT", "AUTO FARM", "KILL" },
-		Status = "SOON",
+		Status = "FREE",
 		PlaceId = 286090429,
 	},
 	{
@@ -5131,7 +5219,7 @@ local LoaderPreviewGames = {
 		Description = "Pet sim",
 		Details = "Pet farm and eggs",
 		Features = { "AUTO FARM", "EGGS", "HATCH" },
-		Status = "SOON",
+		Status = "FREE",
 		PlaceId = 8737602446,
 	},
 	{
@@ -5227,7 +5315,7 @@ local LoaderPreviewGames = {
 		Description = "FPS",
 		Details = "Counter blox aimbot",
 		Features = { "AIMBOT", "ESP", "AUTO FARM" },
-		Status = "SOON",
+		Status = "FREE",
 		PlaceId = 3003369924,
 	},
 	{
@@ -5363,7 +5451,7 @@ local LoaderPreviewGames = {
 		Description = "Asym horror",
 		Details = "Forsaken survive and farm",
 		Features = { "AUTO FARM", "SURVIVE", "KILL" },
-		Status = "SOON",
+		Status = "FREE",
 		PlaceId = 13770989446,
 	},
 	{
@@ -5371,7 +5459,7 @@ local LoaderPreviewGames = {
 		Description = "Zombie FPS",
 		Details = "Zombie uprising farm",
 		Features = { "AUTO FARM", "KILL", "WAVE" },
-		Status = "SOON",
+		Status = "FREE",
 		PlaceId = 5159239355,
 	},
 	{
@@ -5379,7 +5467,7 @@ local LoaderPreviewGames = {
 		Description = "Fighting",
 		Details = "World fighters farm",
 		Features = { "AUTO FARM", "COMBAT", "BOSS" },
-		Status = "SOON",
+		Status = "FREE",
 		PlaceId = 0,
 	},
 	{
@@ -5403,7 +5491,7 @@ local LoaderPreviewGames = {
 		Description = "Anime RPG",
 		Details = "Anime warriors farm",
 		Features = { "AUTO FARM", "BOSS", "UPGRADES" },
-		Status = "SOON",
+		Status = "FREE",
 		PlaceId = 0,
 	},
 	{
@@ -5411,7 +5499,7 @@ local LoaderPreviewGames = {
 		Description = "Anime RPG",
 		Details = "Anime expedition farm",
 		Features = { "AUTO FARM", "BOSS", "UPGRADES" },
-		Status = "SOON",
+		Status = "FREE",
 		PlaceId = 0,
 	},
 	{
@@ -5499,7 +5587,7 @@ local LoaderPreviewGames = {
 		Description = "Tower defense",
 		Details = "All star TD farm",
 		Features = { "AUTO FARM", "AUTO PLACE", "UPGRADE" },
-		Status = "SOON",
+		Status = "FREE",
 		PlaceId = 0,
 	},
 	{
@@ -5507,7 +5595,7 @@ local LoaderPreviewGames = {
 		Description = "Lucky block",
 		Details = "Kick lucky block farm",
 		Features = { "AUTO FARM", "LUCKY BLOCK", "UPGRADES" },
-		Status = "SOON",
+		Status = "FREE",
 		PlaceId = 0,
 	},
 	{
@@ -5515,7 +5603,7 @@ local LoaderPreviewGames = {
 		Description = "Fun",
 		Details = "Jump steal slimes farm",
 		Features = { "AUTO FARM", "JUMP", "COLLECT" },
-		Status = "SOON",
+		Status = "FREE",
 		PlaceId = 0,
 	},
 	{
@@ -5523,7 +5611,7 @@ local LoaderPreviewGames = {
 		Description = "Fun",
 		Details = "Jump steal soccer farm",
 		Features = { "AUTO FARM", "JUMP", "COLLECT" },
-		Status = "SOON",
+		Status = "FREE",
 		PlaceId = 0,
 	},
 	{
@@ -5531,7 +5619,7 @@ local LoaderPreviewGames = {
 		Description = "RPG",
 		Details = "Iron soul farm",
 		Features = { "AUTO FARM", "BOSS", "UPGRADES" },
-		Status = "SOON",
+		Status = "FREE",
 		PlaceId = 0,
 	},
 	{
@@ -5539,7 +5627,7 @@ local LoaderPreviewGames = {
 		Description = "Clicker",
 		Details = "Rebirth champions farm",
 		Features = { "AUTO CLICK", "REBIRTH", "UPGRADES" },
-		Status = "SOON",
+		Status = "FREE",
 		PlaceId = 0,
 	},
 	{
@@ -5547,7 +5635,39 @@ local LoaderPreviewGames = {
 		Description = "RNG",
 		Details = "Slime RNG auto roll",
 		Features = { "AUTO ROLL", "AUTO FARM" },
-		Status = "SOON",
+		Status = "FREE",
+		PlaceId = 0,
+	},
+	{
+		Name = "Sell Ores",
+		Description = "Ore farm",
+		Details = "Sell ores auto farm",
+		Features = { "AUTO MINE", "SELL", "FARM" },
+		Status = "FREE",
+		PlaceId = 0,
+	},
+	{
+		Name = "+1 Skinny Per Step",
+		Description = "Clicker farm",
+		Details = "Skinny per step farm",
+		Features = { "AUTO CLICK", "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 0,
+	},
+	{
+		Name = "Catch a brainrot",
+		Description = "Brainrot farm",
+		Details = "Catch brainrot slop",
+		Features = { "AUTO FARM", "AUTO HATCH", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 0,
+	},
+	{
+		Name = "Loot Evo",
+		Description = "Loot sim",
+		Details = "Loot evolution farm",
+		Features = { "AUTO FARM", "EVOLVE", "UPGRADES" },
+		Status = "FREE",
 		PlaceId = 0,
 	},
 }
@@ -5594,6 +5714,12 @@ local function tryAutoVerifyKey()
 	clearSavedVerifiedKey(routeKey)
 	return nil
 end
+
+-- Resolve universe ids for the preview games so thumbnails render. Wrapped so
+-- a network/API failure never blocks the UI from opening.
+pcall(function()
+	resolveUniverseIdsForGames(LoaderPreviewGames)
+end)
 
 local App = MammozHub:CreateStyledWindow({
 	Name = "Mammoz Hub",
