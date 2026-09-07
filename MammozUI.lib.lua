@@ -1367,7 +1367,7 @@ function MammozUI:CreateWindow(config)
 		Font = Enum.Font.GothamBold,
 		Text = "SYSTEM ONLINE",
 		TextSize = 9,
-		TextColor3 = T.Label,
+		TextColor3 = Color3.fromRGB(235, 247, 255),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		ZIndex = 4,
@@ -1541,7 +1541,7 @@ function MammozUI:CreateWindow(config)
 		Size = UDim2.new(1, -36, 1, 0),
 		Font = Enum.Font.GothamMedium,
 		PlaceholderText = "Search features...",
-		PlaceholderColor3 = Color3.fromRGB(160, 185, 210),
+		PlaceholderColor3 = Color3.fromRGB(195, 218, 240),
 		Text = "",
 		TextSize = 11,
 		TextColor3 = Color3.fromRGB(255, 255, 255),
@@ -2267,7 +2267,7 @@ function Window:Notify(title, body, kind)
 		Font = Enum.Font.GothamMedium,
 		Text = body,
 		TextSize = 10,
-		TextColor3 = T.Label,
+		TextColor3 = Color3.fromRGB(235, 247, 255),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextWrapped = true,
 		TextTransparency = 1,
@@ -2412,9 +2412,9 @@ function Card:AddLabel(text, note)
 		Font = note and Enum.Font.GothamMedium or Enum.Font.GothamSemibold,
 		Text = text,
 		TextSize = note and 12 or 14,
-		-- White for primary text so it reads on the dark card; notes use a
-		-- light blue-white instead of the dim blue that blended in.
-		TextColor3 = note and Color3.fromRGB(210, 226, 245) or Color3.fromRGB(255, 255, 255),
+		-- Keep both note and primary text bright so nothing in a Card reads
+		-- as gray on the dark background.
+		TextColor3 = note and Color3.fromRGB(235, 247, 255) or Color3.fromRGB(255, 255, 255),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextYAlignment = Enum.TextYAlignment.Top,
 		TextWrapped = true,
@@ -2531,7 +2531,7 @@ function Card:AddInput(config, callback)
 		Size = UDim2.new(1, -16, 1, 0),
 		Font = Enum.Font.GothamMedium,
 		PlaceholderText = config.Placeholder or "",
-		PlaceholderColor3 = Color3.fromRGB(160, 185, 210),
+		PlaceholderColor3 = Color3.fromRGB(195, 218, 240),
 		Text = config.Default or "",
 		TextSize = 13,
 		TextColor3 = Color3.fromRGB(255, 255, 255),
@@ -2564,7 +2564,7 @@ function Card:AddInput(config, callback)
 			Font = Enum.Font.GothamMedium,
 			Text = config.Placeholder or "Paste your key here",
 			TextSize = 11,
-			TextColor3 = Color3.fromRGB(160, 185, 210),
+			TextColor3 = Color3.fromRGB(195, 218, 240),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextTruncate = Enum.TextTruncate.AtEnd,
 			ZIndex = keyInput.ZIndex + 2,
@@ -2622,7 +2622,7 @@ function Card:AddInput(config, callback)
 		local function refreshMask()
 			local length = #keyInput.Text
 			mask.Text = length == 0 and (config.Placeholder or "Paste your key here") or string.rep(bullet, math.min(length, 64))
-			mask.TextColor3 = length == 0 and T.Dim or T.Value
+			mask.TextColor3 = length == 0 and Color3.fromRGB(190, 214, 238) or Color3.fromRGB(255, 255, 255)
 			refreshEditor()
 		end
 		self.window:bind(keyInput:GetPropertyChangedSignal("Text"), refreshMask)
