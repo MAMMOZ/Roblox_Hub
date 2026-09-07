@@ -564,12 +564,14 @@ function UI.Window(first, second)
 		Accent = useCustomTheme and (config.Accent or UI.theme.accent) or UI.theme.accent,
 		Theme = useCustomTheme and type(config.MammozTheme) == "table" and config.MammozTheme or nil,
 		Size = requestedSize,
-		OnClose = config.OnClose,
+		OnClose = config.OnClose or config.Destroying or config.destroying,
 	})
 
 	local self = setmetatable({
 		raw = raw,
 		gui = raw.screen,
+		Gui = raw.screen,
+		Container = raw.screen,
 		status = "",
 		stats = {},
 		masterValue = false,
@@ -859,6 +861,16 @@ local function makeControlProxy(refresh)
 	end
 	function proxy:SetValues(value)
 		return self:SetValue(value)
+	end
+	-- Sampluy controls expose Replace(value) to set the displayed state
+	-- without re-running the script callback (used to un-check a toggle from
+	-- inside its own callback without recursion).
+	function proxy:Replace(value)
+		local callbacksToRestore = callbacks
+		callbacks = {}
+		self:SetValue(value)
+		callbacks = callbacksToRestore
+		return self
 	end
 	function proxy:Get()
 		return self.Value
@@ -1965,6 +1977,10 @@ function Card:KeybindField(config, defaultKey, currentKey, callback)
 	local title = config.Label or config.Title or config.Name or config.Text or "Keybind"
 	local value = config.CurrentKeybind or config.CurrentKey or config.Default or config.Value or defaultKey
 	local callbackFn = config.Callback or config.ValueChanged or config.Changed or callback
+	-- Oxide keybinds fire OnPress/OnRelease whenever the bound key is hit,
+	-- independent of the rebind flow. Track them alongside the rebind logic.
+	local onPress = config.OnPress
+	local onRelease = config.OnRelease
 	local waiting = false
 	local proxy
 	local button, label
@@ -1992,14 +2008,34 @@ function Card:KeybindField(config, defaultKey, currentKey, callback)
 	end)
 	if service and self.window and self.window.raw then
 		self.window.raw:bind(service.InputBegan, function(input, processed)
-			if not waiting or processed then
+			if processed then
 				return
 			end
 			if input.UserInputType == Enum.UserInputType.Keyboard then
-				waiting = false
-				proxy:SetValue(input.KeyCode)
+				-- While rebinding, any key captures. Otherwise fire the
+				-- hotkey callbacks when the pressed key matches the bind.
+				if waiting then
+					waiting = false
+					proxy:SetValue(input.KeyCode)
+					return
+				end
+				if value == input.KeyCode then
+					if type(onPress) == "function" then
+						call(onPress, input.KeyCode)
+					end
+					if type(callbackFn) ~= "function" and type(onRelease) == "function" then
+						-- Nothing else listens; still allow release tracking.
+					end
+				end
 			end
 		end)
+		if type(onRelease) == "function" then
+			self.window.raw:bind(service.InputEnded, function(input)
+				if input.UserInputType == Enum.UserInputType.Keyboard and value == input.KeyCode then
+					call(onRelease, input.KeyCode)
+				end
+			end)
+		end
 	end
 
 	function proxy:Get()
@@ -2327,6 +2363,15 @@ local function isNativeMammoz(object, root)
 end
 
 local function applyLegacyStyle(object, root)
+	-- Skip anything that belongs to native Mammoz UI (Card frame, root gui,
+	-- or any control under them) so legacy styling never overwrites the
+	-- white text / accent bars / strokes they set themselves. This must run
+	-- BEFORE the UIStroke branch below — strokes are not GuiObjects, so the
+	-- early return there would otherwise skip the guard and recolor native
+	-- button strokes.
+	if isNativeMammoz(object, root) then
+		return
+	end
 	if not object:IsA("GuiObject") then
 		if object:IsA("UIStroke") then
 			object.Color = UI.theme.accent
@@ -2334,22 +2379,17 @@ local function applyLegacyStyle(object, root)
 		end
 		return
 	end
-	-- Skip anything that belongs to native Mammoz UI (Card frame, root gui,
-	-- or any control under them) so legacy styling never overwrites the
-	-- white text / accent bars they set themselves.
-	if isNativeMammoz(object, root) then
-		return
-	end
+	-- Text colors are intentionally NOT forced anymore: overwriting them was
+	-- the source of the gray-looking text everywhere. Imported scripts keep
+	-- whatever text color they set; only fonts get normalized (when unset).
 	if object:IsA("TextLabel") then
-		object.TextColor3 = object.TextSize >= 16 and UI.theme.text or Color3.fromRGB(169, 204, 231)
-		if object.TextSize >= 16 then
-			object.Font = Enum.Font.GothamBold
-		elseif object.Font ~= Enum.Font.Code then
+		if object.Font == Enum.Font.SourceSans and object.Font ~= Enum.Font.Code then
 			object.Font = Enum.Font.GothamMedium
 		end
 	elseif object:IsA("TextButton") then
-		object.TextColor3 = UI.theme.text
-		object.Font = Enum.Font.GothamBold
+		if object.Font == Enum.Font.SourceSans then
+			object.Font = Enum.Font.GothamBold
+		end
 		if object.BackgroundTransparency < 0.95 then
 			object.BackgroundColor3 = Color3.fromRGB(10, 34, 62)
 		end
@@ -2359,10 +2399,12 @@ local function applyLegacyStyle(object, root)
 			radius.Parent = object
 		end
 	elseif object:IsA("TextBox") then
-		object.BackgroundColor3 = Color3.fromRGB(3, 13, 29)
-		object.TextColor3 = UI.theme.text
-		object.PlaceholderColor3 = UI.theme.dim
-		object.Font = Enum.Font.GothamMedium
+		if object.BackgroundTransparency < 0.95 then
+			object.BackgroundColor3 = Color3.fromRGB(3, 13, 29)
+		end
+		if object.Font == Enum.Font.SourceSans then
+			object.Font = Enum.Font.GothamMedium
+		end
 	elseif object:IsA("ScrollingFrame") then
 		object.ScrollBarThickness = math.max(5, object.ScrollBarThickness)
 		object.ScrollBarImageColor3 = UI.theme.accent
@@ -2778,6 +2820,268 @@ end
 function Window:AddMinimizeButton()
 	return makeControlProxy()
 end
+
+-- Sampluy UI compatibility (the Crokier "Sampluy" package used by
+-- Paazlis-style scripts). Those scripts call UI:CreateWindow({Name=...,
+-- Destroying=...}) and then Window:AddToggle/AddSlider/AddDropdown/
+-- AddButton/AddLabel/AddSelect directly on the window with config tables
+-- (Text/Value/Flag/Callback, Range={min,max}, Option/Multi). These
+-- forwarders route everything into an auto-created "Main" page so the
+-- shared Mammoz shell renders the menu instead of Sampluy.
+
+function Window:SampluyPage()
+	if not self.sampluyPage then
+		self.sampluyPage = self:Page("Main")
+	end
+	return self.sampluyPage
+end
+
+local function sampluyConfig(config)
+	local copy = {}
+	for key, value in pairs(config or {}) do
+		copy[key] = value
+	end
+	return copy
+end
+
+-- Labels return a real TextLabel; Sampluy scripts also call :Set(text) on
+-- them, so wrap the instance with a passthrough proxy that adds Set.
+local function makeSampluyLabelProxy(instance)
+	local wrapper = {}
+	function wrapper:Set(value)
+		pcall(function()
+			instance.Text = tostring(value)
+		end)
+		return wrapper
+	end
+	wrapper.SetValues = wrapper.Set
+	wrapper.SetText = wrapper.Set
+	wrapper.Instance = instance
+	return setmetatable(wrapper, {
+		__index = function(_, key)
+			return instance[key]
+		end,
+		__newindex = function(_, key, value)
+			instance[key] = value
+		end,
+	})
+end
+
+function Window:AddToggle(config)
+	if type(config) ~= "table" then
+		return self:SampluyPage():AddToggle(config)
+	end
+	local cfg = sampluyConfig(config)
+	if cfg.Default == nil and cfg.Value ~= nil then
+		cfg.Default = cfg.Value
+	end
+	return self:SampluyPage():AddToggle(cfg)
+end
+
+function Window:AddSlider(config)
+	if type(config) ~= "table" then
+		return self:SampluyPage():AddSlider(config)
+	end
+	local cfg = sampluyConfig(config)
+	if type(cfg.Range) == "table" then
+		cfg.Min = cfg.Min or tonumber(cfg.Range[1]) or 0
+		cfg.Max = cfg.Max or tonumber(cfg.Range[2]) or 100
+		cfg.Range = nil
+	end
+	if cfg.Default == nil and cfg.Value ~= nil then
+		cfg.Default = cfg.Value
+	end
+	return self:SampluyPage():AddSlider(cfg)
+end
+
+function Window:AddDropdown(config)
+	if type(config) ~= "table" then
+		return self:SampluyPage():AddDropdown(config)
+	end
+	local cfg = sampluyConfig(config)
+	local cb = cfg.Callback or cfg.Changed
+	local isMulti = cfg.Multi == true or cfg.MultipleOptions == true or cfg.Multiple == true
+	local default = cfg.Option ~= nil and cfg.Option or (cfg.Default ~= nil and cfg.Default or cfg.Value)
+	cfg.Name = cfg.Name or cfg.Text or cfg.Title
+	if isMulti then
+		cfg.Multi = true
+		if type(default) ~= "table" then
+			cfg.Default = default ~= nil and { default } or {}
+		else
+			cfg.Default = default
+		end
+		return self:SampluyPage():AddMultiDropdown(cfg)
+	end
+	cfg.Default = default
+	-- Sampluy dropdown callbacks always receive a list, even for a single
+	-- selection (scripts index option[1] and call table.find(option, ...)).
+	if type(cb) == "function" then
+		cfg.Callback = function(value)
+			cb({ value })
+		end
+	end
+	return self:SampluyPage():AddDropdown(cfg)
+end
+
+function Window:AddButton(config)
+	if type(config) ~= "table" then
+		return self:SampluyPage():AddButton(config)
+	end
+	local cfg = sampluyConfig(config)
+	cfg.Name = cfg.Name or cfg.Text or cfg.Title
+	return self:SampluyPage():AddButton(cfg)
+end
+
+function Window:AddLabel(config)
+	if type(config) ~= "table" then
+		return makeSampluyLabelProxy(self:SampluyPage():AddLabel(config))
+	end
+	local cfg = sampluyConfig(config)
+	local label = self:SampluyPage():AddLabel(cfg.Text or cfg.Title or cfg.Name or "")
+	if type(cfg.TextColor3) == "Color3" then
+		pcall(function()
+			label.TextColor3 = cfg.TextColor3
+		end)
+	end
+	if cfg.TextScaled == true then
+		pcall(function()
+			label.TextScaled = true
+		end)
+	end
+	return makeSampluyLabelProxy(label)
+end
+
+function Window:AddParagraph(config)
+	if type(config) ~= "table" then
+		return self:SampluyPage():AddParagraph(config)
+	end
+	return self:AddLabel({ Text = config.Text or config.Title or "" })
+end
+
+-- World picker: turning the control on arms it; the next left click passes
+-- the clicked instance to the callback and turns itself back off. Scripts
+-- read/write .Active and .Visible on the returned object.
+function Window:AddSelect(config)
+	config = type(config) == "table" and config or { Text = tostring(config) }
+	local title = config.Text or config.Name or config.Title or "Select Target"
+	local cb = config.Callback or config.Changed
+
+	local proxy = {}
+	proxy.Active = false
+	proxy.Visible = true
+
+	local pickerToggle
+	pickerToggle = self:AddToggle({
+		Text = title .. " (arm, then click a part)",
+		Value = false,
+		Callback = function(value)
+			proxy.Active = value and true or false
+		end,
+	})
+	proxy.Toggle = pickerToggle
+
+	local UserInputService = game:GetService("UserInputService")
+	local Players = game:GetService("Players")
+	local connection = UserInputService.InputBegan:Connect(function(input, processed)
+		if processed then
+			return
+		end
+		if input.UserInputType ~= Enum.UserInputType.MouseButton1 and input.UserInputType ~= Enum.UserInputType.Touch then
+			return
+		end
+		if not proxy.Active then
+			return
+		end
+		local player = Players.LocalPlayer
+		local mouse = player and player:GetMouse()
+		local target = mouse and mouse.Target
+		if target then
+			proxy.Active = false
+			if pickerToggle and pickerToggle.Set then
+				pcall(function()
+					pickerToggle:Set(false)
+				end)
+			end
+			call(cb, target)
+		end
+	end)
+	rawset(proxy, "Connection", connection)
+	function proxy:Destroy()
+		if connection then
+			pcall(function()
+				connection:Disconnect()
+			end)
+		end
+	end
+
+	return proxy
+end
+
+-- Oxide UI compatibility (xulfo/OxideUiLibary2 "OxideLib"). Those scripts
+-- get "local Library = _G.OxideLib" injected by their loader and then call
+-- Library:CreateWindow({Name=..., LoadingAnimation=...}), Window:AddTab,
+-- Tab:AddSubTab, sub:AddSection("...")/AddSection{Name=...}, and the usual
+-- AddToggle/AddButton/AddSlider/AddDropdown/AddMultiDropdown/AddInput/
+-- AddLabel/AddParagraph/AddKeybind/AddColorPicker with {Name, Default, Flag,
+-- Callback, OnPress, Options, Min/Max, Suffix} configs. The adapter below
+-- wires that surface onto the shared Mammoz Window/Page/Card stack.
+
+function Window:Toggle()
+	if self.raw and type(self.raw.setVisible) == "function" then
+		local nextVisible = not (self.raw.visible == true)
+		self.raw:setVisible(nextVisible)
+		return nextVisible
+	end
+	return false
+end
+
+function UI:CreateOxideLibrary()
+	local library = {}
+
+	library.CreateWindow = function(config)
+		config = type(config) == "table" and config or {}
+		local window = UI:Window({
+			Title = config.Name or config.name or "Mammoz Hub",
+			-- LoadingAnimation/LoadingText/LoadingDuration have no Mammoz
+			-- equivalent; the window simply opens immediately.
+		})
+		library.LastWindow = window
+		library.Window = library.Window or window
+		return window
+	end
+
+	library.Notify = function(config)
+		local window = library.LastWindow or UI.LastWindow
+		if window then
+			return window:Notify(config)
+		end
+		return nil
+	end
+
+	library.SaveConfig = function(name)
+		return UI:SaveConfig(tostring(name or "default"))
+	end
+	library.LoadConfig = function(name)
+		return UI:LoadConfig(tostring(name or "default"))
+	end
+	library.ListConfigs = function()
+		return UI:ListConfigs()
+	end
+	library.SetTheme = function(name)
+		return UI:SetTheme(tostring(name or "Dark"))
+	end
+
+	library.Flags = UI.Options
+	library.Options = UI.Options
+	library.Toggles = UI.Toggles
+
+	return library
+end
+
+-- Tab-level helpers: the Sampluy forwarders above (Window:AddToggle etc.)
+-- already accept both config tables and positional args, so Oxide scripts
+-- work through them unchanged. Only Window:Toggle and the library factory
+-- needed to be added.
 
 function Page:AddSection(config)
 	return self:CreateSection(config)
