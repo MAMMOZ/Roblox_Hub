@@ -774,6 +774,10 @@ local function resolveUniverseIdsForGames(games)
 	if #placeIds == 0 then
 		return
 	end
+	local resolved = 0
+	-- Batch attempt first (one or two requests). Note: this endpoint started
+	-- requiring auth for anonymous callers, so it may return nothing here —
+	-- the per-place fallback below covers that case.
 	for i = 1, #placeIds, 100 do
 		local chunk = {}
 		for j = i, math.min(i + 99, #placeIds) do
@@ -789,8 +793,27 @@ local function resolveUniverseIdsForGames(games)
 			for _, entry in ipairs(data) do
 				if type(entry) == "table" and entry.universeId then
 					universeCache[tonumber(entry.placeId)] = tonumber(entry.universeId)
+					resolved = resolved + 1
 				end
 			end
+		end
+	end
+	if resolved > 0 then
+		return
+	end
+	-- Fallback: resolve one place at a time via the anonymous single-place
+	-- endpoint. Slow (~1 request per game), so the caller must run this in a
+	-- background task; a short pause every few requests keeps us polite.
+	for index, pid in ipairs(placeIds) do
+		local data = httpGetJson("https://apis.roblox.com/universes/v1/places/" .. tostring(pid) .. "/universe")
+		if not data then
+			data = httpGetJson("https://apis.roproxy.com/universes/v1/places/" .. tostring(pid) .. "/universe")
+		end
+		if type(data) == "table" and data.universeId then
+			universeCache[pid] = tonumber(data.universeId)
+		end
+		if index % 8 == 0 then
+			task.wait(0.2)
 		end
 	end
 end
@@ -1089,6 +1112,16 @@ local function addDepth(parent, theme, level, radius)
 		local visible = parent.Visible
 		shadow.Visible = visible
 		glow.Visible = visible
+	end)
+	-- Shadow/glow are siblings of `parent`, so destroying the parent leaves
+	-- them orphaned on screen. Clean them up together with the parent.
+	parent.Destroying:Connect(function()
+		if shadow.Parent then
+			shadow:Destroy()
+		end
+		if glow.Parent then
+			glow:Destroy()
+		end
 	end)
 
 	return shadow, glow
@@ -4201,7 +4234,31 @@ local GAME_ROUTES = {
 		Key = "gakuran",
 		Name = "Gakuran",
 		PlaceIds = { 128736949265057 },
-		Url = "",
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/42ef9ede2c560e3c679423ec1725ce2d294ca5249d9c903400ac71c2ddd9c39d/download",
+	},
+	{
+		Key = "dungeon_lootr",
+		Name = "Dungeon Lootr",
+		PlaceIds = { 106484206883664 },
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/056e24b06970ad2ec68007d65c6fbb58d3d91e2ab908138c4da06996382dd8fe/download",
+	},
+	{
+		Key = "da_hood",
+		Name = "Da Hood",
+		PlaceIds = { 2788229376 },
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/dc19ed8275ef5a430f7ba1de06f5eccfaef7a74e6959f3fa336981b7f2cb37bf/download",
+	},
+	{
+		Key = "cut_grass_adventure",
+		Name = "+1 Cut Grass Adventure",
+		PlaceIds = { 90086669327265 },
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/1d35b364d18aa456ad99c0a3f85be9afab82901135c85f4f02d830ee92be14d5/download",
+	},
+	{
+		Key = "fish_bait_tora",
+		Name = "BE A FISH BAIT - Tora IsMe",
+		PlaceIds = { 99702578544768 },
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/056e24b06970ad2ec68007d65c6fbb58d3d91e2ab908138c4da06996382dd8fe/download",
 	},
 	{
 		Key = "ninetynine_nights",
@@ -4516,9 +4573,11 @@ local GAME_ROUTES = {
 		Url = "",
 	},
 	{
+		-- 2788229376 is Da Hood; it was previously mislabeled Ragdoll Engine
+		-- with an empty URL, which dead-ended the loader in Da Hood.
 		Key = "ragdoll_engine",
 		Name = "Ragdoll Engine",
-		PlaceIds = { 2788229376 },
+		PlaceIds = { 1212010974 },
 		Url = "",
 	},
 	{
@@ -5553,6 +5612,730 @@ local LoaderPreviewGames = {
 		Status = "FREE",
 		PlaceId = 0,
 	},
+
+	-- Oxide UI library conversions (see scripts/oxide)
+	{
+		Name = "Da Hood (Oxide)",
+		Description = "Oxide route",
+		Details = "Da Hood - Oxide route",
+		Features = { "AUTO FARM", "ESP", "TELEPORT", "COMBAT" },
+		Status = "FREE",
+		PlaceId = 2788229376,
+	},
+	{
+		Name = "Dungeon Lootr (Oxide)",
+		Description = "Oxide route",
+		Details = "Dungeon-Lootr - Oxide route",
+		Features = { "AUTO FARM", "LOOT", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 0,
+	},
+	{
+		Name = "Gakuran (Oxide)",
+		Description = "Oxide route",
+		Details = "Gakuran - Oxide route",
+		Features = { "AUTO FARM", "AUTO QUEST", "SKILL SPAM" },
+		Status = "FREE",
+		PlaceId = 128736949265057,
+	},
+	{
+		Name = "Graben und Reinigen (Oxide)",
+		Description = "Oxide route - richer feature set",
+		Details = "Dig & clean - Oxide route",
+		Features = { "AUTO DIG", "AUTO CLEAN", "FARM" },
+		Status = "FREE",
+		PlaceId = 0,
+	},
+	{
+		Name = "Grow a Chicken Fighter (Oxide)",
+		Description = "Oxide route - richer feature set",
+		Details = "GACF - Oxide route",
+		Features = { "AUTO FARM", "AUTO HATCH", "AUTO PIT" },
+		Status = "FREE",
+		PlaceId = 94640181989498,
+	},
+	{
+		Name = "Jump for Pets (Oxide)",
+		Description = "Oxide route",
+		Details = "Jump for Pets - Oxide route",
+		Features = { "AUTO FARM", "AUTO HATCH", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 0,
+	},
+	{
+		Name = "Leaf Simulator (Oxide)",
+		Description = "Oxide route - richer feature set",
+		Details = "Leaf sim - Oxide route",
+		Features = { "AUTO FARM", "AUTO REBIRTH", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 0,
+	},
+	{
+		Name = "MM2 (Oxide)",
+		Description = "Oxide route",
+		Details = "MM2 - Oxide route",
+		Features = { "ESP", "AUTO FARM", "TELEPORT" },
+		Status = "FREE",
+		PlaceId = 142823291,
+	},
+	{
+		Name = "Steal an Egg (Oxide)",
+		Description = "Oxide route - richer feature set",
+		Details = "Steal an Egg - Oxide route",
+		Features = { "AUTO STEAL", "AUTO HATCH", "ESP" },
+		Status = "FREE",
+		PlaceId = 107778070777162,
+	},
+	{
+		Name = "Universal (Oxide)",
+		Description = "Oxide route",
+		Details = "Universal tools - Oxide route",
+		Features = { "SERVER HOP", "REJOIN", "ANTI-AFK" },
+		Status = "FREE",
+		PlaceId = 0,
+	},
+
+	-- Paazlis Mods/Games conversions (see scripts/paazlis + paazlis-manifest.csv)
+	{
+		Name = "Catch 1 Billion Ducks",
+		Description = "Paazlis route",
+		Details = "Catch 1 Billion Ducks",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 100293509865504,
+	},
+	{
+		Name = "[UPD] Merge a Spinner!",
+		Description = "Paazlis route",
+		Details = "[UPD] Merge a Spinner!",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 101396571928321,
+	},
+	{
+		Name = "Kaucja Symulator (Deposit)",
+		Description = "Paazlis route",
+		Details = "Kaucja Symulator",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 101607790076338,
+	},
+	{
+		Name = "Butterfly Legends",
+		Description = "Paazlis route",
+		Details = "Butterfly Legends",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 102050885098531,
+	},
+	{
+		Name = "Secure the Airport",
+		Description = "Paazlis route",
+		Details = "Secure the Airport",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 102054284786904,
+	},
+	{
+		Name = "+1 Strength Soccer Escape",
+		Description = "Paazlis route",
+		Details = "+1 Strength Soccer Escape",
+		Features = { "AUTO FARM", "AUTO CLICK", "AUTO WIN", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 104459855378825,
+	},
+	{
+		Name = "+1 Stretch Escape",
+		Description = "Paazlis route",
+		Details = "+1 Stretch Escape",
+		Features = { "AUTO FARM", "AUTO CLICK", "AUTO WIN", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 105940087682495,
+	},
+	{
+		Name = "Secure the Supermarket",
+		Description = "Paazlis route",
+		Details = "Secure the Supermarket",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 107573271137575,
+	},
+	{
+		Name = "RNG Heroes",
+		Description = "Paazlis route",
+		Details = "RNG Heroes",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 108307565942574,
+	},
+	{
+		Name = "+1 Scream Per Click",
+		Description = "Paazlis route",
+		Details = "+1 Scream Per Click",
+		Features = { "AUTO FARM", "AUTO CLICK", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 108354344401029,
+	},
+	{
+		Name = "Merge an Army",
+		Description = "Paazlis route",
+		Details = "Merge an Army",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 109274213361590,
+	},
+	{
+		Name = "Paper Plane for Brainrots",
+		Description = "Paazlis route",
+		Details = "Paper Plane for Brainrots",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 110373292461174,
+	},
+	{
+		Name = "+1 Web Wing Escape",
+		Description = "Paazlis route",
+		Details = "+1 Web Wing Escape",
+		Features = { "AUTO FARM", "AUTO CLICK", "AUTO WIN", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 110668201954727,
+	},
+	{
+		Name = "Sell Ice Cream",
+		Description = "Paazlis route",
+		Details = "Sell Ice Cream",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 110793563946846,
+	},
+	{
+		Name = "+1 Fat Evolution",
+		Description = "Paazlis route",
+		Details = "+1 Fat Evolution",
+		Features = { "AUTO FARM", "AUTO CLICK", "AUTO REBIRTH", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 112167159515934,
+	},
+	{
+		Name = "+1 Wood Per Click",
+		Description = "Paazlis route",
+		Details = "+1 Wood Per Click",
+		Features = { "AUTO FARM", "AUTO CLICK", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 112231208081788,
+	},
+	{
+		Name = "Link a Brainrots",
+		Description = "Paazlis route",
+		Details = "Link a Brainrots",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 112500097711893,
+	},
+	{
+		Name = "Shred the Secrets",
+		Description = "Paazlis route",
+		Details = "Shred the Secrets",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 113175013158657,
+	},
+	{
+		Name = "+1 Kaiju Power Per Click",
+		Description = "Paazlis route",
+		Details = "+1 Kaiju Power Per Click",
+		Features = { "AUTO FARM", "AUTO CLICK", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 114386067746582,
+	},
+	{
+		Name = "Find the Egg for a Brainrot",
+		Description = "Paazlis route",
+		Details = "Find the Egg for a Brainrot",
+		Features = { "AUTO FARM", "AUTO STEAL", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 114507117535918,
+	},
+	{
+		Name = "Throw a Coin",
+		Description = "Paazlis route",
+		Details = "Throw a Coin",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 115681808123944,
+	},
+	{
+		Name = "One Block",
+		Description = "Paazlis route",
+		Details = "One Block",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 117295931291816,
+	},
+	{
+		Name = "Bomb Fishing",
+		Description = "Paazlis route",
+		Details = "Bomb Fishing",
+		Features = { "AUTO FARM", "AUTO FISH", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 118677256126351,
+	},
+	{
+		Name = "+1 Speed Phonk Escape",
+		Description = "Paazlis route",
+		Details = "+1 Speed Phonk Escape",
+		Features = { "AUTO FARM", "AUTO CLICK", "AUTO WIN", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 119416070805734,
+	},
+	{
+		Name = "Idle Balls",
+		Description = "Paazlis route",
+		Details = "Idle Balls",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 119529264392781,
+	},
+	{
+		Name = "Pickpocket!",
+		Description = "Paazlis route",
+		Details = "Pickpocket!",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 120348634319012,
+	},
+	{
+		Name = "Merge Swords And Kill Zombies!",
+		Description = "Paazlis route",
+		Details = "Merge Swords And Kill Zombies!",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 122004026354492,
+	},
+	{
+		Name = "Make Hotsauce",
+		Description = "Paazlis route",
+		Details = "Make Hotsauce",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 122391683154858,
+	},
+	{
+		Name = "Build a +1 Obby",
+		Description = "Paazlis route",
+		Details = "Build a +1 Obby",
+		Features = { "AUTO FARM", "AUTO CLICK", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 122507029092776,
+	},
+	{
+		Name = "Steal A Lucky Egg",
+		Description = "Paazlis route",
+		Details = "Steal A Lucky Egg",
+		Features = { "AUTO FARM", "AUTO STEAL", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 123698673940079,
+	},
+	{
+		Name = "My Parking Lot",
+		Description = "Paazlis route",
+		Details = "My Parking Lot",
+		Features = { "AUTO FARM", "AUTO COLLECT", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 124714370744277,
+	},
+	{
+		Name = "+1 Fat Per Click",
+		Description = "Paazlis route",
+		Details = "+1 Fat Per Click",
+		Features = { "AUTO FARM", "AUTO CLICK", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 128329680321338,
+	},
+	{
+		Name = "Merge a Nuke!",
+		Description = "Paazlis route",
+		Details = "Merge a Nuke!",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 128784467030899,
+	},
+	{
+		Name = "Roll to Survive",
+		Description = "Paazlis route",
+		Details = "Roll to Survive",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 132508978828159,
+	},
+	{
+		Name = "Build a Gun Army",
+		Description = "Paazlis route",
+		Details = "Build a Gun Army",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 134162299584012,
+	},
+	{
+		Name = "+1 Speed Per Click",
+		Description = "Paazlis route",
+		Details = "+1 Speed Per Click",
+		Features = { "AUTO FARM", "AUTO CLICK", "AUTO WIN", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 134660056748270,
+	},
+	{
+		Name = "Idle Ball Bounce",
+		Description = "Paazlis route",
+		Details = "Idle Ball Bounce",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 136680208905701,
+	},
+	{
+		Name = "Chicken Farm",
+		Description = "Paazlis route",
+		Details = "Chicken Farm",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 137233438285284,
+	},
+	{
+		Name = "Drain The Lake",
+		Description = "Paazlis route",
+		Details = "Drain The Lake",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 138381251771774,
+	},
+	{
+		Name = "Dig for Dinos!",
+		Description = "Paazlis route",
+		Details = "Dig for Dinos!",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 138485603458691,
+	},
+	{
+		Name = "Airport Tycoon",
+		Description = "Paazlis route",
+		Details = "Airport Tycoon",
+		Features = { "AUTO FARM", "AUTO COLLECT", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 138486812747835,
+	},
+	{
+		Name = "My Giant Sandwich",
+		Description = "Paazlis route",
+		Details = "My Giant Sandwich",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 139546619723000,
+	},
+	{
+		Name = "Drop Balls For Brainrots",
+		Description = "Paazlis route",
+		Details = "Drop Balls For Brainrots",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 139992937215031,
+	},
+	{
+		Name = "Zombie Turret Farm",
+		Description = "Paazlis route",
+		Details = "Zombie Turret Farm",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 70790155462881,
+	},
+	{
+		Name = "Mow League",
+		Description = "Paazlis route",
+		Details = "Mow League",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 71129549729775,
+	},
+	{
+		Name = "Gumball Tycoon",
+		Description = "Paazlis route",
+		Details = "Gumball Tycoon",
+		Features = { "AUTO FARM", "AUTO COLLECT", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 71896418752645,
+	},
+	{
+		Name = "Clean the Backyard",
+		Description = "Paazlis route",
+		Details = "Clean the Backyard",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 72417782950794,
+	},
+	{
+		Name = "Hack the World",
+		Description = "Paazlis route",
+		Details = "Hack the World",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 73221000424242,
+	},
+	{
+		Name = "+1 Long Arm Toy Escape",
+		Description = "Paazlis route",
+		Details = "+1 Long Arm Toy Escape",
+		Features = { "AUTO FARM", "AUTO CLICK", "AUTO WIN", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 74341114342499,
+	},
+	{
+		Name = "Throw a Hammers For Brainrots",
+		Description = "Paazlis route",
+		Details = "Throw a Hammers For Brainrots",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 74442575449267,
+	},
+	{
+		Name = "Search For The Needle",
+		Description = "Paazlis route",
+		Details = "Search For The Needle",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 77108422251420,
+	},
+	{
+		Name = "Vacuum Simulator",
+		Description = "Paazlis route",
+		Details = "Vacuum Simulator",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 77133321531129,
+	},
+	{
+		Name = "Tower VS Slimes",
+		Description = "Paazlis route",
+		Details = "Tower VS Slimes",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 78417665924734,
+	},
+	{
+		Name = "Speedsters Infinite",
+		Description = "Paazlis route",
+		Details = "Speedsters Infinite",
+		Features = { "AUTO FARM", "AUTO WIN", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 79658956070105,
+	},
+	{
+		Name = "My Dino Park!",
+		Description = "Paazlis route",
+		Details = "My Dino Park!",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 80701570784699,
+	},
+	{
+		Name = "AI Grows Smarter",
+		Description = "Paazlis route",
+		Details = "AI Grows Smarter",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 80935824895991,
+	},
+	{
+		Name = "Make an Party",
+		Description = "Paazlis route",
+		Details = "Make an Party",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 82570142697239,
+	},
+	{
+		Name = "Clean Your Keycaps",
+		Description = "Paazlis route",
+		Details = "Clean Your Keycaps",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 82745432464897,
+	},
+	{
+		Name = "Crunch My Butter!",
+		Description = "Paazlis route",
+		Details = "Crunch My Butter!",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 87555052900625,
+	},
+	{
+		Name = "+1 Hack Per Click",
+		Description = "Paazlis route",
+		Details = "+1 Hack Per Click",
+		Features = { "AUTO FARM", "AUTO CLICK", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 88968590411663,
+	},
+	{
+		Name = "Endless GAMES",
+		Description = "Paazlis route",
+		Details = "Endless GAMES",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 89035794510548,
+	},
+	{
+		Name = "Build A Skyscraper",
+		Description = "Paazlis route",
+		Details = "Build A Skyscraper",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 89798397953399,
+	},
+	{
+		Name = "Garden Cleaner Evolution",
+		Description = "Paazlis route",
+		Details = "Garden Cleaner Evolution",
+		Features = { "AUTO FARM", "AUTO REBIRTH", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 89907728898683,
+	},
+	{
+		Name = "Build a House",
+		Description = "Paazlis route",
+		Details = "Build a House",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 90038414385014,
+	},
+	{
+		Name = "+1 Cut Grass Adventure",
+		Description = "Paazlis route",
+		Details = "+1 Cut Grass Adventure",
+		Features = { "AUTO FARM", "AUTO CLICK", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 90086669327265,
+	},
+	{
+		Name = "BONK for Brainrots!",
+		Description = "Paazlis route",
+		Details = "BONK for Brainrots!",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 90691590225165,
+	},
+	{
+		Name = "Farm a Fish",
+		Description = "Paazlis route",
+		Details = "Farm a Fish",
+		Features = { "AUTO FARM", "AUTO FISH", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 91296119701853,
+	},
+	{
+		Name = "Soccer Manager Tycoon",
+		Description = "Paazlis route",
+		Details = "Soccer Manager Tycoon",
+		Features = { "AUTO FARM", "AUTO COLLECT", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 91529114721292,
+	},
+	{
+		Name = "+1 Shrink per Step",
+		Description = "Paazlis route",
+		Details = "+1 Shrink per Step",
+		Features = { "AUTO FARM", "AUTO CLICK", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 91695551099066,
+	},
+	{
+		Name = "Fish a Slime",
+		Description = "Paazlis route",
+		Details = "Fish a Slime",
+		Features = { "AUTO FARM", "AUTO FISH", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 91723890596097,
+	},
+	{
+		Name = "Crab Tycoon",
+		Description = "Paazlis route",
+		Details = "Crab Tycoon",
+		Features = { "AUTO FARM", "AUTO COLLECT", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 92605157087535,
+	},
+	{
+		Name = "+1 Speed Super Hero Escape",
+		Description = "Paazlis route",
+		Details = "+1 Speed Super Hero Escape",
+		Features = { "AUTO FARM", "AUTO CLICK", "AUTO WIN", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 92937726498067,
+	},
+	{
+		Name = "My Flower Shop",
+		Description = "Paazlis route",
+		Details = "My Flower Shop",
+		Features = { "AUTO FARM", "AUTO COLLECT", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 93028168925975,
+	},
+	{
+		Name = "Grow a Chicken Fighter - Spiritual Gaming",
+		Description = "Paazlis route",
+		Details = "Grow a Chicken Fighter - Spiritual Gamin",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 94640181989498,
+	},
+	{
+		Name = "My Fishing Empire",
+		Description = "Paazlis route",
+		Details = "My Fishing Empire",
+		Features = { "AUTO FARM", "AUTO FISH", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 94872498041813,
+	},
+	{
+		Name = "Find the Chameleon",
+		Description = "Paazlis route",
+		Details = "Find the Chameleon",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 95496064393804,
+	},
+	{
+		Name = "Dumpling Stars",
+		Description = "Paazlis route",
+		Details = "Dumpling Stars",
+		Features = { "AUTO FARM", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 95829667226336,
+	},
+	{
+		Name = "Heavyweight Fishing",
+		Description = "Paazlis route",
+		Details = "Heavyweight Fishing",
+		Features = { "AUTO FARM", "AUTO FISH", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 98502499119821,
+	},
+	{
+		Name = "+1 Follower Per Click",
+		Description = "Paazlis route",
+		Details = "+1 Follower Per Click",
+		Features = { "AUTO FARM", "AUTO CLICK", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 98695134949589,
+	},
+	{
+		Name = "BE A FISH BAIT - Tora IsMe",
+		Description = "Paazlis route",
+		Details = "BE A FISH BAIT - Tora IsMe",
+		Features = { "AUTO FARM", "AUTO FISH", "UPGRADES" },
+		Status = "FREE",
+		PlaceId = 99702578544768,
+	},
 	{
 		Name = "Weak Legacy 2",
 		Description = "Anime RPG",
@@ -5753,6 +6536,7 @@ local LoaderPreviewGames = {
 		Status = "FREE",
 		PlaceId = 0,
 	},
+
 }
 
 local function startMain(key, app)
@@ -5799,12 +6583,15 @@ local function tryAutoVerifyKey()
 end
 
 -- Resolve universe ids + real thumbnail URLs for the preview games so images
--- render. Wrapped so a network/API failure never blocks the UI from opening.
--- (Actual image files are downloaded by the separate download-thumbs.js
--- Node.js tool, not at runtime here.)
-pcall(function()
-	resolveUniverseIdsForGames(LoaderPreviewGames)
-	resolveThumbnailsForGames(LoaderPreviewGames)
+-- render. Runs in a background task so the per-place fallback (up to ~100
+-- sequential requests) never delays the window from opening; images simply
+-- pop in on the next page rebuild (the GetKey page auto-slides every few
+-- seconds). Wrapped so a network/API failure never breaks the UI.
+task.spawn(function()
+	pcall(function()
+		resolveUniverseIdsForGames(LoaderPreviewGames)
+		resolveThumbnailsForGames(LoaderPreviewGames)
+	end)
 end)
 
 local App = MammozHub:CreateStyledWindow({
