@@ -119,7 +119,7 @@ UI.theme = {
 	warn = Color3.fromRGB(247, 191, 72),
 	bad = Color3.fromRGB(255, 104, 119),
 	text = Color3.fromRGB(235, 247, 255),
-	dim = Color3.fromRGB(112, 150, 183),
+	dim = Color3.fromRGB(150, 190, 225),
 }
 
 -- All converted scripts share this visual system. A script may opt out only
@@ -1506,9 +1506,22 @@ function Card:MultiDropdown(config, options, default, callback)
 		Callback = callback,
 	}
 	local values = config.Values or config.Options or config.List or config.Items or {}
-	local selectedSet = arraySet(config.Default or config.Value or config.CurrentValue or config.Selected or {})
 	local cb = config.Callback or config.ValueChanged or callback
 	local title = config.Name or config.name or config.Title or config.Label or "Multi Dropdown"
+
+	-- Native multi-select control: the popup stays open while picking, each
+	-- entry toggles with a checkmark, and the callback receives the full
+	-- selection array on every change.
+	if type(self.raw) == "table" and type(self.raw.AddMultiDropdown) == "function" then
+		local initial = config.Default or config.Value or config.CurrentValue or config.Selected or {}
+		return self.raw:AddMultiDropdown(title, values, initial, function(selection)
+			call(cb, selection)
+		end)
+	end
+
+	-- Fallback emulation for backends without the native control: a status
+	-- label plus a "Toggle" dropdown that flips one option per pick.
+	local selectedSet = arraySet(config.Default or config.Value or config.CurrentValue or config.Selected or {})
 	local status = self:AddLabel(title .. ": " .. (#selectionFromSet(values, selectedSet) > 0 and table.concat(selectionFromSet(values, selectedSet), ", ") or "None"), true)
 
 	local function currentSelection()
@@ -2391,7 +2404,7 @@ local function applyLegacyStyle(object, root)
 			object.Font = Enum.Font.GothamBold
 		end
 		if object.BackgroundTransparency < 0.95 then
-			object.BackgroundColor3 = Color3.fromRGB(10, 34, 62)
+			object.BackgroundColor3 = Color3.fromRGB(20, 60, 110)
 		end
 		if not object:FindFirstChildOfClass("UICorner") then
 			local radius = Instance.new("UICorner")
@@ -2400,7 +2413,7 @@ local function applyLegacyStyle(object, root)
 		end
 	elseif object:IsA("TextBox") then
 		if object.BackgroundTransparency < 0.95 then
-			object.BackgroundColor3 = Color3.fromRGB(3, 13, 29)
+			object.BackgroundColor3 = Color3.fromRGB(8, 26, 50)
 		end
 		if object.Font == Enum.Font.SourceSans then
 			object.Font = Enum.Font.GothamMedium
@@ -2410,7 +2423,7 @@ local function applyLegacyStyle(object, root)
 		object.ScrollBarImageColor3 = UI.theme.accent
 	elseif object:IsA("Frame") or object:IsA("CanvasGroup") then
 		if object.BackgroundTransparency < 0.95 then
-			object.BackgroundColor3 = object.Parent == root and Color3.fromRGB(4, 12, 26) or Color3.fromRGB(11, 31, 56)
+			object.BackgroundColor3 = object.Parent == root and Color3.fromRGB(6, 18, 38) or Color3.fromRGB(16, 44, 80)
 		end
 	end
 end
