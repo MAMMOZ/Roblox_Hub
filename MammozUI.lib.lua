@@ -1121,7 +1121,9 @@ function MammozUI:CreateWindow(config)
 
 	local openButton = make("TextButton", {
 		Name = "MammozOpenButton",
-		BackgroundColor3 = T.Card,
+		-- UIGradient tints this colour instead of replacing it.  White keeps the
+		-- intended dark-blue gradient from being multiplied into near-black.
+		BackgroundColor3 = Color3.new(1, 1, 1),
 		BorderSizePixel = 0,
 		Position = UDim2.fromOffset(22, 22),
 		Size = UDim2.fromOffset(210, 128),
@@ -2326,7 +2328,8 @@ function Page:CreateCard(title, order)
 	local T = self.window.theme
 	local frame = make("CanvasGroup", {
 		Name = title,
-		BackgroundColor3 = T.Card,
+		-- Gradient colours are multiplied with BackgroundColor3 by Roblox.
+		BackgroundColor3 = Color3.new(1, 1, 1),
 		BackgroundTransparency = 0.04,
 		BorderSizePixel = 0,
 		Size = UDim2.new(1, 0, 0, 0),
@@ -2447,7 +2450,7 @@ function Card:AddButton(text, callback)
 	local h = self.window.touch and 48 or 44
 	local button = make("TextButton", {
 		Size = UDim2.new(1, 0, 0, h),
-		BackgroundColor3 = T.ElementHover,
+		BackgroundColor3 = Color3.new(1, 1, 1),
 		BorderSizePixel = 0,
 		Text = "",
 		AutoButtonColor = false,
@@ -2488,12 +2491,10 @@ function Card:AddButton(text, callback)
 	label.Parent = button
 	self.window:bind(button.MouseEnter, function()
 		tween(line, TI_FAST, { Color = T.Accent, Transparency = 0 })
-		tween(button, TI_FAST, { BackgroundColor3 = T.FieldRaised })
 		tween(accentBar, TI_FAST, { BackgroundTransparency = 0 })
 	end)
 	self.window:bind(button.MouseLeave, function()
 		tween(line, TI_FAST, { Color = T.ElementLine, Transparency = 0 })
-		tween(button, TI_FAST, { BackgroundColor3 = T.ElementHover })
 		tween(accentBar, TI_FAST, { BackgroundTransparency = 0.35 })
 	end)
 	self.window:bind(button.MouseButton1Click, function()
@@ -2532,7 +2533,7 @@ function Card:AddInput(config, callback)
 	local inputHolder = make("Frame", {
 		Position = UDim2.fromOffset(labelOffset, 0),
 		Size = UDim2.new(1, -labelOffset, 0, h),
-		BackgroundColor3 = T.ElementHover,
+		BackgroundColor3 = Color3.new(1, 1, 1),
 		BorderSizePixel = 0,
 		ClipsDescendants = true,
 	}, inputRow)
@@ -2687,7 +2688,7 @@ function Card:AddToggle(text, default, callback)
 	local h = self.window.touch and 60 or 56
 	local row = make("TextButton", {
 		Size = UDim2.new(1, 0, 0, h),
-		BackgroundColor3 = T.ElementHover,
+		BackgroundColor3 = Color3.new(1, 1, 1),
 		BorderSizePixel = 0,
 		Text = "",
 		AutoButtonColor = false,
@@ -2785,12 +2786,10 @@ function Card:AddToggle(text, default, callback)
 	render()
 	self.window:bind(row.MouseEnter, function()
 		tween(line, TI_FAST, { Color = T.Accent, Transparency = 0 })
-		tween(row, TI_FAST, { BackgroundColor3 = T.FieldRaised })
 		tween(accentBar, TI_FAST, { BackgroundTransparency = 0 })
 	end)
 	self.window:bind(row.MouseLeave, function()
 		tween(line, TI_FAST, { Color = T.ElementLine, Transparency = 0 })
-		tween(row, TI_FAST, { BackgroundColor3 = T.ElementHover })
 		tween(accentBar, TI_FAST, { BackgroundTransparency = 0.35 })
 	end)
 	self.window:bind(row.MouseButton1Click, function()
@@ -2804,7 +2803,7 @@ function Card:AddSlider(text, min, max, default, callback)
 	local touch = self.window.touch
 	local h = touch and 64 or 60
 	local container = make("Frame", {
-		BackgroundColor3 = T.ElementHover,
+		BackgroundColor3 = Color3.new(1, 1, 1),
 		BackgroundTransparency = 0,
 		BorderSizePixel = 0,
 		Size = UDim2.new(1, 0, 0, h),
@@ -2948,7 +2947,7 @@ function Card:AddDropdown(text, options, default, callback)
 	local current = default ~= nil and default or values[1]
 	local container = make("TextButton", {
 		Size = UDim2.new(1, 0, 0, h),
-		BackgroundColor3 = T.ElementHover,
+		BackgroundColor3 = Color3.new(1, 1, 1),
 		BorderSizePixel = 0,
 		Text = "",
 		AutoButtonColor = false,
