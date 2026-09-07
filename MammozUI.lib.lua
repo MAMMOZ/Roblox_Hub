@@ -145,6 +145,16 @@ local function tween(object, info, properties)
 		animation:Play()
 		return animation
 	end)
+	if not ok then
+		-- Some executors fail to tween certain properties (e.g. CanvasGroup
+		-- GroupTransparency). Falling back to a direct set keeps elements at
+		-- their intended final state instead of getting stuck faded out.
+		pcall(function()
+			for property, finalValue in pairs(properties) do
+				object[property] = finalValue
+			end
+		end)
+	end
 	return ok and value or nil
 end
 
@@ -2385,8 +2395,17 @@ function Page:CreateCard(title, order)
 	}, Card)
 	self.cards[#self.cards + 1] = card
 
-	-- intro fade (staggered)
+	-- intro fade (staggered). Fail-safe: whatever happens to the tween
+	-- (unsupported property, interruption), force the final visible state
+	-- after a moment so the card never stays half-faded/gray.
 	tween(frame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, false, 0.035 * #self.cards), { GroupTransparency = 0 })
+	task.delay(1, function()
+		if frame.Parent then
+			pcall(function()
+				frame.GroupTransparency = 0
+			end)
+		end
+	end)
 	return card
 end
 
