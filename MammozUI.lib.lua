@@ -44,20 +44,20 @@ local DEFAULT_THEME = {
 	SidebarBottom = Color3.fromRGB(2, 10, 23),
 	WindowLine = Color3.fromRGB(35, 113, 188),
 	Divider = Color3.fromRGB(30, 81, 132),
-	Card = Color3.fromRGB(11, 31, 56),
-	CardBottom = Color3.fromRGB(5, 18, 35),
-	CardLine = Color3.fromRGB(30, 81, 132),
-	Element = Color3.fromRGB(10, 34, 62),
-	ElementHover = Color3.fromRGB(16, 47, 82),
-	ElementLine = Color3.fromRGB(30, 81, 132),
-	Field = Color3.fromRGB(3, 13, 29),
-	FieldRaised = Color3.fromRGB(10, 34, 62),
+	Card = Color3.fromRGB(250, 251, 253),
+	CardBottom = Color3.fromRGB(242, 246, 250),
+	CardLine = Color3.fromRGB(214, 222, 234),
+	Element = Color3.fromRGB(235, 240, 246),
+	ElementHover = Color3.fromRGB(244, 248, 252),
+	ElementLine = Color3.fromRGB(210, 218, 230),
+	Field = Color3.fromRGB(226, 232, 240),
+	FieldRaised = Color3.fromRGB(238, 243, 249),
 	NavActive = Color3.fromRGB(15, 45, 80),
 	Title = Color3.fromRGB(235, 247, 255),
 	Value = Color3.fromRGB(226, 243, 255),
-	Label = Color3.fromRGB(180, 209, 232),
+	Label = Color3.fromRGB(235, 247, 255),
 	NavIdle = Color3.fromRGB(190, 219, 242),
-	Dim = Color3.fromRGB(105, 145, 179),
+	Dim = Color3.fromRGB(140, 180, 215),
 	Primary = Color3.fromRGB(83, 193, 255),
 	Success = Color3.fromRGB(61, 224, 167),
 	Error = Color3.fromRGB(255, 104, 119),
@@ -2378,7 +2378,7 @@ function Page:CreateCard(title, order)
 		Font = Enum.Font.GothamBlack,
 		Text = title,
 		TextSize = 15,
-		TextColor3 = Color3.fromRGB(255, 255, 255),
+		TextColor3 = Color3.fromRGB(15, 23, 42),
 		TextXAlignment = Enum.TextXAlignment.Left,
 	}, titleHolder)
 	local divider = make("Frame", {
@@ -2436,7 +2436,7 @@ function Card:AddLabel(text, note)
 		TextSize = note and 12 or 14,
 		-- Keep both note and primary text bright so nothing in a Card reads
 		-- as gray on the dark background.
-		TextColor3 = note and Color3.fromRGB(235, 247, 255) or Color3.fromRGB(255, 255, 255),
+		TextColor3 = note and Color3.fromRGB(71, 85, 105) or Color3.fromRGB(15, 23, 42),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextYAlignment = Enum.TextYAlignment.Top,
 		TextWrapped = true,
@@ -2484,7 +2484,7 @@ function Card:AddButton(text, callback)
 		Font = Enum.Font.GothamBold,
 		Text = text,
 		TextSize = 13,
-		TextColor3 = Color3.fromRGB(255, 255, 255),
+		TextColor3 = Color3.fromRGB(15, 23, 42),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		ZIndex = 2,
 	})
@@ -2523,7 +2523,7 @@ function Card:AddInput(config, callback)
 			Font = Enum.Font.GothamBold,
 			Text = config.Label,
 			TextSize = 13,
-			TextColor3 = Color3.fromRGB(255, 255, 255),
+			TextColor3 = Color3.fromRGB(15, 23, 42),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextYAlignment = Enum.TextYAlignment.Center,
 			TextTruncate = Enum.TextTruncate.AtEnd,
@@ -2551,10 +2551,10 @@ function Card:AddInput(config, callback)
 		Size = UDim2.new(1, -16, 1, 0),
 		Font = Enum.Font.GothamMedium,
 		PlaceholderText = config.Placeholder or "",
-		PlaceholderColor3 = Color3.fromRGB(195, 218, 240),
+		PlaceholderColor3 = Color3.fromRGB(148, 163, 184),
 		Text = config.Default or "",
 		TextSize = 13,
-		TextColor3 = Color3.fromRGB(255, 255, 255),
+		TextColor3 = Color3.fromRGB(15, 23, 42),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		ClearTextOnFocus = false,
 		MultiLine = false,
@@ -2584,7 +2584,7 @@ function Card:AddInput(config, callback)
 			Font = Enum.Font.GothamMedium,
 			Text = config.Placeholder or "Paste your key here",
 			TextSize = 11,
-			TextColor3 = Color3.fromRGB(195, 218, 240),
+			TextColor3 = Color3.fromRGB(148, 163, 184),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextTruncate = Enum.TextTruncate.AtEnd,
 			ZIndex = keyInput.ZIndex + 2,
@@ -2642,7 +2642,7 @@ function Card:AddInput(config, callback)
 		local function refreshMask()
 			local length = #keyInput.Text
 			mask.Text = length == 0 and (config.Placeholder or "Paste your key here") or string.rep(bullet, math.min(length, 64))
-			mask.TextColor3 = length == 0 and Color3.fromRGB(190, 214, 238) or Color3.fromRGB(255, 255, 255)
+			mask.TextColor3 = length == 0 and Color3.fromRGB(148, 163, 184) or Color3.fromRGB(15, 23, 42)
 			refreshEditor()
 		end
 		self.window:bind(keyInput:GetPropertyChangedSignal("Text"), refreshMask)
@@ -2718,7 +2718,7 @@ function Card:AddToggle(text, default, callback)
 		Font = Enum.Font.GothamBold,
 		Text = text,
 		TextSize = 14,
-		TextColor3 = Color3.fromRGB(255, 255, 255),
+		TextColor3 = Color3.fromRGB(15, 23, 42),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		ZIndex = 2,
 	}, row)
@@ -2833,7 +2833,7 @@ function Card:AddSlider(text, min, max, default, callback)
 		Font = Enum.Font.GothamBold,
 		Text = text,
 		TextSize = 14,
-		TextColor3 = Color3.fromRGB(255, 255, 255),
+		TextColor3 = Color3.fromRGB(15, 23, 42),
 		TextXAlignment = Enum.TextXAlignment.Left,
 	}, container)
 	local valueLabel = make("TextLabel", {
@@ -2843,7 +2843,7 @@ function Card:AddSlider(text, min, max, default, callback)
 		Font = Enum.Font.GothamBold,
 		Text = tostring(default),
 		TextSize = 13,
-		TextColor3 = Color3.fromRGB(255, 255, 255),
+		TextColor3 = Color3.fromRGB(15, 23, 42),
 		TextXAlignment = Enum.TextXAlignment.Right,
 	}, container)
 	local track = make("TextButton", {
@@ -2977,7 +2977,7 @@ function Card:AddDropdown(text, options, default, callback)
 		Font = Enum.Font.GothamBold,
 		Text = tostring(text or "Dropdown"),
 		TextSize = 14,
-		TextColor3 = Color3.fromRGB(255, 255, 255),
+		TextColor3 = Color3.fromRGB(15, 23, 42),
 		TextXAlignment = Enum.TextXAlignment.Left,
 	}, container)
 	local valueHolder = make("Frame", {
@@ -2996,11 +2996,11 @@ function Card:AddDropdown(text, options, default, callback)
 		Font = Enum.Font.GothamMedium,
 		Text = tostring(current or "Select"),
 		TextSize = 13,
-		TextColor3 = Color3.fromRGB(235, 247, 255),
+		TextColor3 = Color3.fromRGB(15, 23, 42),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 	}, valueHolder)
-	local chev = makeChevron(valueHolder, 10, T.Label)
+	local chev = makeChevron(valueHolder, 10, Color3.fromRGB(71, 85, 105))
 	chev.Position = UDim2.new(1, -13, 0.5)
 	chev.AnchorPoint = Vector2.new(1, 0.5)
 
@@ -3126,7 +3126,7 @@ function Card:AddDropdown(text, options, default, callback)
 				BorderSizePixel = 0,
 				Text = tostring(optionValue),
 				TextSize = 13,
-				TextColor3 = Color3.fromRGB(235, 247, 255),
+				TextColor3 = Color3.fromRGB(15, 23, 42),
 				Font = Enum.Font.GothamMedium,
 				TextXAlignment = Enum.TextXAlignment.Left,
 				AutoButtonColor = false,
@@ -3141,7 +3141,7 @@ function Card:AddDropdown(text, options, default, callback)
 				tween(button, TI_FAST, { BackgroundColor3 = T.NavActive, TextColor3 = Color3.fromRGB(255, 255, 255) })
 			end)
 			bindEntry(button.MouseLeave, function()
-				tween(button, TI_FAST, { BackgroundColor3 = T.FieldRaised, TextColor3 = Color3.fromRGB(235, 247, 255) })
+				tween(button, TI_FAST, { BackgroundColor3 = T.FieldRaised, TextColor3 = Color3.fromRGB(15, 23, 42) })
 			end)
 			bindEntry(button.MouseButton1Click, function()
 				choose(optionValue, true)
@@ -3208,6 +3208,438 @@ function Card:AddDropdown(text, options, default, callback)
 
 	rebuild(values)
 	choose(current, false)
+	win:bind(container:GetPropertyChangedSignal("AbsolutePosition"), function()
+		if open then
+			syncPosition()
+		end
+	end)
+	win:bind(container.MouseEnter, function()
+		tween(line, TI_FAST, { Color = T.Accent })
+	end)
+	win:bind(container.MouseLeave, function()
+		if not open then
+			tween(line, TI_FAST, { Color = T.ElementLine })
+		end
+	end)
+	win:bind(container.MouseButton1Click, function()
+		setOpen(not open)
+	end)
+	popupInputBegan = function(input)
+		if not open then
+			return
+		end
+		if input.UserInputType ~= Enum.UserInputType.MouseButton1 and input.UserInputType ~= Enum.UserInputType.Touch then
+			return
+		end
+		local point = input.Position
+		local cAp, cAs = container.AbsolutePosition, container.AbsoluteSize
+		local lAp, lAs = list.AbsolutePosition, list.AbsoluteSize
+		local inContainer = point.X >= cAp.X and point.X <= cAp.X + cAs.X and point.Y >= cAp.Y and point.Y <= cAp.Y + cAs.Y
+		local inList = point.X >= lAp.X and point.X <= lAp.X + lAs.X and point.Y >= lAp.Y and point.Y <= lAp.Y + lAs.Y
+		if not inContainer and not inList then
+			setOpen(false)
+		end
+	end
+	popupInputChanged = function(input)
+		if not open or input.UserInputType ~= Enum.UserInputType.MouseWheel then
+			return
+		end
+		local point = UserInputService:GetMouseLocation()
+		local ap, size = list.AbsolutePosition, list.AbsoluteSize
+		if point.X < ap.X or point.X > ap.X + size.X or point.Y < ap.Y or point.Y > ap.Y + size.Y then
+			return
+		end
+		local maxY = math.max(0, list.AbsoluteCanvasSize.Y - list.AbsoluteWindowSize.Y)
+		list.CanvasPosition = Vector2.new(0, math.clamp(list.CanvasPosition.Y - input.Position.Z * 48, 0, maxY))
+	end
+	win:addCleanup(function()
+		win:closePopup(proxy)
+		clearEntryConnections()
+		if list and list.Parent then
+			list:Destroy()
+		end
+	end)
+	return proxy
+end
+
+-- Multi-select dropdown. The popup stays open while picking, each entry
+-- carries a checkmark for its selected state, and clicking an entry toggles
+-- it instead of replacing the whole selection. The callback receives a fresh
+-- array with every change, and proxy.Value mirrors the current selection.
+function Card:AddMultiDropdown(text, options, default, callback)
+	local T = self.window.theme
+	local touch = self.window.touch
+	local win = self.window
+	local h = touch and 58 or 54
+	local values = type(options) == "table" and options or {}
+	local selectedSet = {}
+	if type(default) == "table" then
+		for _, value in ipairs(default) do
+			selectedSet[tostring(value)] = true
+		end
+	elseif default ~= nil then
+		selectedSet[tostring(default)] = true
+	end
+
+	local function currentSelection()
+		local result = {}
+		for _, option in ipairs(values) do
+			if selectedSet[tostring(option)] then
+				result[#result + 1] = option
+			end
+		end
+		return result
+	end
+
+	local function displayText()
+		local selected = currentSelection()
+		if #selected == 0 then
+			return "None"
+		end
+		return table.concat(selected, ", ")
+	end
+
+	local container = make("TextButton", {
+		Size = UDim2.new(1, 0, 0, h),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BorderSizePixel = 0,
+		Text = "",
+		AutoButtonColor = false,
+		LayoutOrder = self:nextOrder(),
+	}, self.frame)
+	container:SetAttribute("MammozUI", true)
+	corner(container, 8)
+	make("UIGradient", {
+		Color = ColorSequence.new(T.ElementHover, T.Element),
+		Rotation = 90,
+	}, container)
+	local line = stroke(container, T.ElementLine, 0, 1.4)
+	local accentBar = make("Frame", {
+		Name = "AccentBar",
+		BackgroundColor3 = T.Accent,
+		BackgroundTransparency = 0.35,
+		BorderSizePixel = 0,
+		Position = UDim2.fromOffset(0, 0),
+		Size = UDim2.fromOffset(3, 1),
+		ZIndex = 2,
+	}, container)
+	corner(accentBar, 2)
+	make("TextLabel", {
+		BackgroundTransparency = 1,
+		Position = UDim2.fromOffset(16, 0),
+		Size = UDim2.new(0, 224, 1, 0),
+		Font = Enum.Font.GothamBold,
+		Text = tostring(text or "Dropdown"),
+		TextSize = 14,
+		TextColor3 = Color3.fromRGB(15, 23, 42),
+		TextXAlignment = Enum.TextXAlignment.Left,
+	}, container)
+	local valueHolder = make("Frame", {
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -14, 0.5, 0),
+		Size = UDim2.new(0.48, 0, 0, 34),
+		BackgroundColor3 = T.FieldRaised,
+		BorderSizePixel = 0,
+	}, container)
+	corner(valueHolder, 6)
+	stroke(valueHolder, T.ElementLine, 0, 1.2)
+	local valueLabel = make("TextLabel", {
+		BackgroundTransparency = 1,
+		Position = UDim2.fromOffset(12, 0),
+		Size = UDim2.new(1, -40, 1, 0),
+		Font = Enum.Font.GothamMedium,
+		Text = displayText(),
+		TextSize = 13,
+		TextColor3 = Color3.fromRGB(15, 23, 42),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+	}, valueHolder)
+	local chev = makeChevron(valueHolder, 10, Color3.fromRGB(71, 85, 105))
+	chev.Position = UDim2.new(1, -13, 0.5)
+	chev.AnchorPoint = Vector2.new(1, 0.5)
+
+	local list = make("ScrollingFrame", {
+		Name = "MammozMultiDropdown",
+		Visible = false,
+		BackgroundColor3 = T.Card,
+		BorderSizePixel = 0,
+		ClipsDescendants = true,
+		CanvasSize = UDim2.new(),
+		ScrollingDirection = Enum.ScrollingDirection.Y,
+		ScrollingEnabled = true,
+		ScrollBarThickness = 5,
+		ScrollBarImageColor3 = T.Accent,
+		ScrollBarImageTransparency = 0.08,
+		ZIndex = 80,
+	}, win.main)
+	corner(list, 7)
+	stroke(list, T.Accent, 0.08)
+	make("UIListLayout", {
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Padding = UDim.new(0, 4),
+	}, list)
+	make("UIPadding", {
+		PaddingTop = UDim.new(0, 6),
+		PaddingBottom = UDim.new(0, 6),
+		PaddingLeft = UDim.new(0, 6),
+		PaddingRight = UDim.new(0, 8),
+	}, list)
+
+	local open = false
+	local entries = {}
+	local entryConnections = {}
+	local popupHeight = 48
+	local proxy = { Instance = container, Value = currentSelection(), Observers = {} }
+	local popupInputBegan
+	local popupInputChanged
+
+	local function clearEntryConnections()
+		for _, connection in ipairs(entryConnections) do
+			pcall(function()
+				connection:Disconnect()
+			end)
+		end
+		table.clear(entryConnections)
+	end
+
+	local function bindEntry(signal, callbackFn)
+		local connection = signal:Connect(function(...)
+			invokeCallback("Multi dropdown entry: " .. tostring(text), callbackFn, ...)
+		end)
+		entryConnections[#entryConnections + 1] = connection
+		return connection
+	end
+
+	local function syncPosition()
+		local cAp, cAs = container.AbsolutePosition, container.AbsoluteSize
+		local mAp, mAs = win.main.AbsolutePosition, win.main.AbsoluteSize
+		local width = math.clamp(math.floor(cAs.X * 0.48), 240, 420)
+		local x = cAp.X - mAp.X + cAs.X - width - 14
+		local below = cAp.Y - mAp.Y + cAs.Y + 5
+		local y = below + popupHeight <= mAs.Y - 10 and below or math.max(10, cAp.Y - mAp.Y - popupHeight - 5)
+		list.Position = UDim2.fromOffset(x, y)
+		list.Size = UDim2.fromOffset(width, popupHeight)
+	end
+
+	local function setOpen(on, fromManager)
+		open = on == true and #values > 0
+		if open then
+			syncPosition()
+			win:openPopup(proxy, {
+				Close = function()
+					setOpen(false, true)
+				end,
+				InputBegan = function(input)
+					if popupInputBegan then
+						popupInputBegan(input)
+					end
+				end,
+				InputChanged = function(input)
+					if popupInputChanged then
+						popupInputChanged(input)
+					end
+				end,
+			})
+		elseif not fromManager then
+			win:closePopup(proxy)
+		end
+		list.Visible = open
+		tween(chev, TI_FAST, { Rotation = open and 180 or 0 })
+		tween(line, TI_FAST, { Color = open and T.Accent or T.ElementLine })
+	end
+
+	local function fireCallback()
+		proxy.Value = currentSelection()
+		valueLabel.Text = displayText()
+		if callback then
+			spawnCallback("Multi dropdown: " .. tostring(text), callback, currentSelection())
+		end
+		for _, observer in ipairs(proxy.Observers) do
+			spawnCallback("Multi dropdown observer: " .. tostring(text), observer, currentSelection())
+		end
+	end
+
+	local function paintEntry(entry)
+		local selected = selectedSet[tostring(entry.value)] == true
+		tween(entry.button, TI_FAST, {
+			BackgroundColor3 = selected and T.NavActive or T.FieldRaised,
+			TextColor3 = selected and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(51, 65, 85),
+		})
+		entry.check.Visible = selected
+	end
+
+	local function paintAllEntries()
+		for _, entry in ipairs(entries) do
+			paintEntry(entry)
+		end
+	end
+
+	local function rebuild(nextValues)
+		values = type(nextValues) == "table" and nextValues or {}
+		clearEntryConnections()
+		for _, entry in ipairs(entries) do
+			if entry.button.Parent then
+				entry.button:Destroy()
+			end
+		end
+		table.clear(entries)
+		for index, option in ipairs(values) do
+			local optionValue = option
+			local selected = selectedSet[tostring(optionValue)] == true
+			local button = make("TextButton", {
+				Size = UDim2.new(1, 0, 0, touch and 40 or 36),
+				BackgroundColor3 = selected and T.NavActive or T.FieldRaised,
+				BorderSizePixel = 0,
+				Text = tostring(optionValue),
+				TextSize = 13,
+				TextColor3 = selected and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(51, 65, 85),
+				Font = Enum.Font.GothamMedium,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				AutoButtonColor = false,
+				LayoutOrder = index,
+				ZIndex = 81,
+			}, list)
+			button:SetAttribute("MammozUI", true)
+			corner(button, 5)
+			make("UIPadding", { PaddingLeft = UDim.new(0, 12) }, button)
+			local check = make("TextLabel", {
+				BackgroundTransparency = 1,
+				AnchorPoint = Vector2.new(1, 0.5),
+				Position = UDim2.new(1, -12, 0.5),
+				Size = UDim2.fromOffset(18, 16),
+				Font = Enum.Font.GothamBold,
+				Text = "✓",
+				TextSize = 15,
+				TextColor3 = T.Accent,
+				TextXAlignment = Enum.TextXAlignment.Right,
+				Visible = selected,
+				ZIndex = 82,
+			}, button)
+			local entry = { button = button, check = check, value = optionValue }
+			entries[#entries + 1] = entry
+			bindEntry(button.MouseEnter, function()
+				tween(button, TI_FAST, { BackgroundColor3 = T.NavActive, TextColor3 = Color3.fromRGB(255, 255, 255) })
+			end)
+			bindEntry(button.MouseLeave, function()
+				paintEntry(entry)
+			end)
+			bindEntry(button.MouseButton1Click, function()
+				local key = tostring(optionValue)
+				selectedSet[key] = (not selectedSet[key]) or nil
+				paintEntry(entry)
+				fireCallback()
+			end)
+		end
+		local itemHeight = touch and 40 or 36
+		local contentHeight = 12 + #values * itemHeight + math.max(0, #values - 1) * 4
+		popupHeight = math.clamp(contentHeight, 48, touch and 260 or 234)
+		list.CanvasSize = UDim2.fromOffset(0, contentHeight)
+		if open then
+			syncPosition()
+		end
+	end
+
+	local function applySelection(selection)
+		selectedSet = {}
+		if type(selection) == "table" then
+			for _, value in ipairs(selection) do
+				selectedSet[tostring(value)] = true
+			end
+		elseif selection ~= nil then
+			selectedSet[tostring(selection)] = true
+		end
+		paintAllEntries()
+		fireCallback()
+	end
+
+	function proxy:Get()
+		return currentSelection()
+	end
+	function proxy:Set(selection)
+		applySelection(selection)
+		return self
+	end
+	function proxy:Select(value)
+		selectedSet[tostring(value)] = true
+		paintAllEntries()
+		fireCallback()
+		return self
+	end
+	function proxy:Unselect(value)
+		selectedSet[tostring(value)] = nil
+		paintAllEntries()
+		fireCallback()
+		return self
+	end
+	function proxy:SetValue(selection)
+		return self:Set(selection)
+	end
+	function proxy:SetValues(selection)
+		return self:Set(selection)
+	end
+	function proxy:SetOptions(nextValues)
+		rebuild(nextValues)
+		fireCallback()
+		return self
+	end
+	function proxy:Refresh(nextValues)
+		if type(nextValues) == "table" then
+			rebuild(nextValues)
+		end
+		fireCallback()
+		return self
+	end
+	function proxy:Clear()
+		values = {}
+		selectedSet = {}
+		rebuild(values)
+		fireCallback()
+		return self
+	end
+	function proxy:Add(value)
+		values[#values + 1] = value
+		rebuild(values)
+		return self
+	end
+	function proxy:Remove(value)
+		for index, option in ipairs(values) do
+			if option == value then
+				table.remove(values, index)
+				break
+			end
+		end
+		selectedSet[tostring(value)] = nil
+		rebuild(values)
+		fireCallback()
+		return self
+	end
+	function proxy:GetOptions()
+		local result = {}
+		for index, option in ipairs(values) do
+			result[index] = option
+		end
+		return result
+	end
+	function proxy:Open()
+		setOpen(true)
+		return self
+	end
+	function proxy:Close()
+		setOpen(false)
+		return self
+	end
+	function proxy:OnChanged(observer)
+		if type(observer) == "function" then
+			self.Observers[#self.Observers + 1] = observer
+		end
+		return self
+	end
+	function proxy:SetDesc()
+		return self
+	end
+
+	rebuild(values)
+	proxy.Value = currentSelection()
 	win:bind(container:GetPropertyChangedSignal("AbsolutePosition"), function()
 		if open then
 			syncPosition()
