@@ -4248,7 +4248,7 @@ local GAME_ROUTES = {
 		Key = "dungeon_lootr",
 		Name = "Dungeon Lootr",
 		PlaceIds = { 106484206883664 },
-		Url = "https://api.jnkie.com/api/v1/luascripts/public/056e24b06970ad2ec68007d65c6fbb58d3d91e2ab908138c4da06996382dd8fe/download",
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/e4268721fe855776a87b46a4d90e43a2766542ea043ce07a132f4f9bea2b47dc/download",
 	},
 	{
 		Key = "da_hood",
