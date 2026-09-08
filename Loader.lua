@@ -147,6 +147,14 @@ PeterHubV2.DefaultGames = {
 		PlaceId = 0,
 	},
 	{
+		Name = "Dungeon Quest Reborn",
+		Description = "DQR - Auto Farm",
+		Details = "Auto dungeon, kite, dodge, difficulty climb, gear management",
+		Status = "FREE",
+		PlaceId = 77649408247578,
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/dfd22390daef74d45ac7db57e534ba11b6c4c010a34fd6181d24c3570ae35cf4/download",
+	},
+	{
 		Name = "Murder Mystery 2",
 		Description = "MM2 - Exclusive",
 		Details = "VIP maps and exclusive features",
