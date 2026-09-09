@@ -152,7 +152,6 @@ PeterHubV2.DefaultGames = {
 		Details = "Auto dungeon, kite, dodge, difficulty climb, gear management",
 		Status = "FREE",
 		PlaceId = 77649408247578,
-		Url = "https://api.jnkie.com/api/v1/luascripts/public/dfd22390daef74d45ac7db57e534ba11b6c4c010a34fd6181d24c3570ae35cf4/download",
 	},
 	{
 		Name = "Murder Mystery 2",
@@ -4245,7 +4244,7 @@ local GAME_ROUTES = {
 		Url = "https://api.jnkie.com/api/v1/luascripts/public/42ef9ede2c560e3c679423ec1725ce2d294ca5249d9c903400ac71c2ddd9c39d/download",
 	},
 	{
-		Name = "dungeon Quest Reborn",
+		Key = "dungeon_quest_reborn",
 		Name = "Dungeon Quest Reborn",
 		PlaceIds = { 77649408247578 },
 		Url = "https://api.jnkie.com/api/v1/luascripts/public/dfd22390daef74d45ac7db57e534ba11b6c4c010a34fd6181d24c3570ae35cf4/download",
