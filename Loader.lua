@@ -4245,6 +4245,12 @@ local GAME_ROUTES = {
 		Url = "https://api.jnkie.com/api/v1/luascripts/public/42ef9ede2c560e3c679423ec1725ce2d294ca5249d9c903400ac71c2ddd9c39d/download",
 	},
 	{
+		Name = "dungeon Quest Reborn",
+		Name = "Dungeon Quest Reborn",
+		PlaceIds = { 77649408247578 },
+		Url = "https://api.jnkie.com/api/v1/luascripts/public/dfd22390daef74d45ac7db57e534ba11b6c4c010a34fd6181d24c3570ae35cf4/download",
+	},
+	{
 		Key = "dungeon_lootr",
 		Name = "Dungeon Lootr",
 		PlaceIds = { 106484206883664 },
@@ -5623,7 +5629,7 @@ local LoaderPreviewGames = {
 
 	-- Oxide UI library conversions (see scripts/oxide)
 	{
-		Name = "Da Hood (Oxide)",
+		Name = "Da Hood",
 		Description = "Oxide route",
 		Details = "Da Hood - Oxide route",
 		Features = { "AUTO FARM", "ESP", "TELEPORT", "COMBAT" },
@@ -5631,7 +5637,7 @@ local LoaderPreviewGames = {
 		PlaceId = 2788229376,
 	},
 	{
-		Name = "Dungeon Lootr (Oxide)",
+		Name = "Dungeon Lootr",
 		Description = "Oxide route",
 		Details = "Dungeon-Lootr - Oxide route",
 		Features = { "AUTO FARM", "LOOT", "UPGRADES" },
@@ -5639,7 +5645,7 @@ local LoaderPreviewGames = {
 		PlaceId = 0,
 	},
 	{
-		Name = "Gakuran (Oxide)",
+		Name = "Gakuran",
 		Description = "Oxide route",
 		Details = "Gakuran - Oxide route",
 		Features = { "AUTO FARM", "AUTO QUEST", "SKILL SPAM" },
@@ -5647,7 +5653,7 @@ local LoaderPreviewGames = {
 		PlaceId = 128736949265057,
 	},
 	{
-		Name = "Graben und Reinigen (Oxide)",
+		Name = "Graben und Reinigen",
 		Description = "Oxide route - richer feature set",
 		Details = "Dig & clean - Oxide route",
 		Features = { "AUTO DIG", "AUTO CLEAN", "FARM" },
@@ -5655,7 +5661,7 @@ local LoaderPreviewGames = {
 		PlaceId = 0,
 	},
 	{
-		Name = "Grow a Chicken Fighter (Oxide)",
+		Name = "Grow a Chicken Fighter",
 		Description = "Oxide route - richer feature set",
 		Details = "GACF - Oxide route",
 		Features = { "AUTO FARM", "AUTO HATCH", "AUTO PIT" },
@@ -5663,7 +5669,7 @@ local LoaderPreviewGames = {
 		PlaceId = 94640181989498,
 	},
 	{
-		Name = "Jump for Pets (Oxide)",
+		Name = "Jump for Pets",
 		Description = "Oxide route",
 		Details = "Jump for Pets - Oxide route",
 		Features = { "AUTO FARM", "AUTO HATCH", "UPGRADES" },
@@ -5671,7 +5677,7 @@ local LoaderPreviewGames = {
 		PlaceId = 0,
 	},
 	{
-		Name = "Leaf Simulator (Oxide)",
+		Name = "Leaf Simulator",
 		Description = "Oxide route - richer feature set",
 		Details = "Leaf sim - Oxide route",
 		Features = { "AUTO FARM", "AUTO REBIRTH", "UPGRADES" },
@@ -5679,7 +5685,7 @@ local LoaderPreviewGames = {
 		PlaceId = 0,
 	},
 	{
-		Name = "MM2 (Oxide)",
+		Name = "MM2",
 		Description = "Oxide route",
 		Details = "MM2 - Oxide route",
 		Features = { "ESP", "AUTO FARM", "TELEPORT" },
@@ -5687,7 +5693,7 @@ local LoaderPreviewGames = {
 		PlaceId = 142823291,
 	},
 	{
-		Name = "Steal an Egg (Oxide)",
+		Name = "Steal an Egg",
 		Description = "Oxide route - richer feature set",
 		Details = "Steal an Egg - Oxide route",
 		Features = { "AUTO STEAL", "AUTO HATCH", "ESP" },
@@ -5695,7 +5701,7 @@ local LoaderPreviewGames = {
 		PlaceId = 107778070777162,
 	},
 	{
-		Name = "Universal (Oxide)",
+		Name = "Universal",
 		Description = "Oxide route",
 		Details = "Universal tools - Oxide route",
 		Features = { "SERVER HOP", "REJOIN", "ANTI-AFK" },
